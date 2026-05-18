@@ -39,6 +39,7 @@ function makeEmitted(overrides: Partial<EmittedItem> = {}): EmittedItem {
       audience: "beginner",
       topics: ["setup", "workflow"],
       summary: "First sentence. Second sentence.",
+      editor_confidence: "high",
     },
     runDateUtc: "2026-05-18",
     fingerprint: "abcd1234abcd1234",
@@ -53,6 +54,7 @@ const EXPECTED_KEYS = [
   "title",
   "audience",
   "topics",
+  "editor_confidence",
   "internal",
   "authored",
   "last_reviewed",
@@ -73,7 +75,7 @@ describe("write.writeNewsItem", () => {
     expect(basename).toMatch(/^\d{4}-\d{2}-\d{2}-[a-z0-9-]+\.md$/);
   });
 
-  it("emits frontmatter matching shared content shape (AC11: exact 12 keys)", async () => {
+  it("emits frontmatter matching shared content shape (AC11: exact 13 keys)", async () => {
     const fs = memFs();
     const target = await writeNewsItem(makeEmitted(), "/news", fs);
     const content = await fs.readFile(target, "utf8");
@@ -86,6 +88,7 @@ describe("write.writeNewsItem", () => {
     expect(fm.deeper_link).toBeNull();
     expect(fm.audience).toBe("beginner");
     expect(fm.topics).toEqual(["setup", "workflow"]);
+    expect(fm.editor_confidence).toBe("high");
     expect(fm.authored).toBe("2026-05-18");
     expect(fm.last_reviewed).toBe("2026-05-18");
     expect(fm.external_link).toBe("https://example.com/x");

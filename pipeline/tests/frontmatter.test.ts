@@ -8,6 +8,7 @@ const EXPECTED_KEYS = [
   "title",
   "audience",
   "topics",
+  "editor_confidence",
   "internal",
   "authored",
   "last_reviewed",
@@ -33,6 +34,7 @@ function makeEmitted(): EmittedItem {
       audience: "beginner",
       topics: ["setup", "workflow"],
       summary: "First sentence. Second sentence.",
+      editor_confidence: "high",
     },
     runDateUtc: "2026-05-18",
     fingerprint: "abcd1234abcd1234",
@@ -42,7 +44,7 @@ function makeEmitted(): EmittedItem {
 }
 
 describe("frontmatter.buildFrontmatter", () => {
-  it("emits frontmatter matching shared content shape (12 keys, type=news, internal=false)", () => {
+  it("emits frontmatter matching shared content shape (13 keys, type=news, internal=false)", () => {
     const fm = buildFrontmatter(makeEmitted());
     expect(Object.keys(fm).sort()).toEqual([...EXPECTED_KEYS].sort());
     expect(fm.type).toBe("news");
@@ -61,12 +63,13 @@ describe("frontmatter.buildFrontmatter", () => {
     expect(Object.keys(fm)).toEqual(EXPECTED_KEYS);
   });
 
-  it("copies fingerprint, source, external_link verbatim", () => {
+  it("copies fingerprint, source, external_link, editor_confidence verbatim", () => {
     const emitted = makeEmitted();
     const fm = buildFrontmatter(emitted);
     expect(fm.fingerprint).toBe("abcd1234abcd1234");
     expect(fm.source).toBe("Anthropic news");
     expect(fm.external_link).toBe("https://example.com/x");
+    expect(fm.editor_confidence).toBe("high");
   });
 });
 
@@ -79,5 +82,6 @@ describe("frontmatter.serializeFrontmatter", () => {
     expect(parsed.type).toBe("news");
     expect(parsed.internal).toBe(false);
     expect(parsed.deeper_link).toBeNull();
+    expect(parsed.editor_confidence).toBe("high");
   });
 });

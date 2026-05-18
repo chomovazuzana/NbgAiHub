@@ -44,6 +44,7 @@ describe("triage.triageItem", () => {
       audience: "beginner",
       topics: ["setup"],
       summary: "S1. S2.",
+      editor_confidence: "high",
     });
     const { client, create } = makeMockClient(payload);
     const result = await triageItem(client, "gpt-4o-mini", makeItem());
@@ -52,6 +53,7 @@ describe("triage.triageItem", () => {
       audience: "beginner",
       topics: ["setup"],
       summary: "S1. S2.",
+      editor_confidence: "high",
     });
     expect(create).toHaveBeenCalledTimes(1);
   });
@@ -62,6 +64,7 @@ describe("triage.triageItem", () => {
       audience: "both",
       topics: ["t"],
       summary: "x. y.",
+      editor_confidence: "medium",
     });
     const { client, create } = makeMockClient(payload);
     await triageItem(client, "my-deployment-name", makeItem());
@@ -77,6 +80,7 @@ describe("triage.triageItem", () => {
       audience: "both",
       topics: ["t"],
       summary: "x. y.",
+      editor_confidence: "high",
     });
     const { client, create } = makeMockClient(payload);
     await triageItem(client, "dep", makeItem());
@@ -85,16 +89,46 @@ describe("triage.triageItem", () => {
     expect(system?.content).toContain("JSON");
   });
 
+  it("system prompt carries source-aware rules for r/ClaudeAI and HN", () => {
+    expect(SYSTEM_PROMPT).toContain("r/ClaudeAI");
+    expect(SYSTEM_PROMPT).toContain("Hacker News");
+    expect(SYSTEM_PROMPT).toContain("Anthropic news");
+    expect(SYSTEM_PROMPT).toContain("Simon Willison");
+    expect(SYSTEM_PROMPT).toContain("When in doubt, reject");
+    expect(SYSTEM_PROMPT).toContain("editor_confidence");
+  });
+
+  it("r/ClaudeAI block names all four ACCEPT categories", () => {
+    expect(SYSTEM_PROMPT).toContain("Tips, tricks, prompts, workflow recipes");
+    expect(SYSTEM_PROMPT).toContain("Field reports / war stories");
+    expect(SYSTEM_PROMPT).toContain("Platform news");
+    expect(SYSTEM_PROMPT).toContain("Professional / enterprise use");
+  });
+
   it("drops items marked irrelevant (returns null)", async () => {
     const payload = JSON.stringify({
       relevant: false,
       audience: "both",
       topics: [],
       summary: "Not relevant.",
+      editor_confidence: "high",
     });
     const { client } = makeMockClient(payload);
     const result = await triageItem(client, "dep", makeItem());
     expect(result).toBeNull();
+  });
+
+  it("preserves editor_confidence verbatim on relevant items", async () => {
+    const payload = JSON.stringify({
+      relevant: true,
+      audience: "advanced",
+      topics: ["mcp"],
+      summary: "S1. S2.",
+      editor_confidence: "low",
+    });
+    const { client } = makeMockClient(payload);
+    const result = await triageItem(client, "dep", makeItem());
+    expect(result?.editor_confidence).toBe("low");
   });
 
   it("rejects malformed triage response (wrong field types)", async () => {
@@ -103,6 +137,7 @@ describe("triage.triageItem", () => {
       audience: "expert",
       topics: "setup",
       summary: 42,
+      editor_confidence: "high",
     });
     const { client } = makeMockClient(payload);
     await expect(triageItem(client, "dep", makeItem())).rejects.toBeInstanceOf(
@@ -122,6 +157,34 @@ describe("triage.triageItem", () => {
       relevant: true,
       topics: [],
       summary: "x.",
+      editor_confidence: "high",
+    });
+    const { client } = makeMockClient(payload);
+    await expect(triageItem(client, "dep", makeItem())).rejects.toBeInstanceOf(
+      MalformedTriageResponseError,
+    );
+  });
+
+  it("rejects response with missing editor_confidence field", async () => {
+    const payload = JSON.stringify({
+      relevant: true,
+      audience: "both",
+      topics: ["t"],
+      summary: "x. y.",
+    });
+    const { client } = makeMockClient(payload);
+    await expect(triageItem(client, "dep", makeItem())).rejects.toBeInstanceOf(
+      MalformedTriageResponseError,
+    );
+  });
+
+  it("rejects response with editor_confidence outside the allowed set", async () => {
+    const payload = JSON.stringify({
+      relevant: true,
+      audience: "both",
+      topics: ["t"],
+      summary: "x. y.",
+      editor_confidence: "very-high",
     });
     const { client } = makeMockClient(payload);
     await expect(triageItem(client, "dep", makeItem())).rejects.toBeInstanceOf(

@@ -27,13 +27,18 @@ export type FeedItem = {
 };
 
 /**
- * The four-field JSON object Azure OpenAI must return. F5 contract.
+ * The five-field JSON object Azure OpenAI must return. F5 contract.
+ *
+ * `editor_confidence` is the model's self-rated certainty about the
+ * `relevant` verdict — "high" for clear accept/reject, "low" when
+ * borderline. The editor uses it to triage the review PR quickly.
  */
 export type TriageResult = {
   relevant: boolean;
   audience: "beginner" | "advanced" | "both";
   topics: string[];
   summary: string;
+  editor_confidence: "high" | "medium" | "low";
 };
 
 /**
@@ -49,13 +54,15 @@ export type EmittedItem = {
 };
 
 /**
- * The 12-key frontmatter object. AC11 asserts EXACTLY these keys, no more, no less.
+ * The 13-key frontmatter object. AC11 asserts EXACTLY these keys, no more, no less.
+ * `editor_confidence` is editorial metadata from the triage model — see TriageResult.
  */
 export type NewsFrontmatter = {
   type: "news";
   title: string;
   audience: "beginner" | "advanced" | "both";
   topics: string[];
+  editor_confidence: "high" | "medium" | "low";
   internal: false;
   authored: string;
   last_reviewed: string;

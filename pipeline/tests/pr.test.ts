@@ -30,6 +30,7 @@ function makeEmitted(overrides: Partial<EmittedItem> = {}): EmittedItem {
       audience: "beginner",
       topics: ["setup"],
       summary: "Sentence one. Sentence two.",
+      editor_confidence: "high",
     },
     runDateUtc: "2026-05-18",
     fingerprint: "abcd1234abcd1234",
@@ -40,7 +41,7 @@ function makeEmitted(overrides: Partial<EmittedItem> = {}): EmittedItem {
 }
 
 describe("pr.buildPrBody", () => {
-  it("PR body file contains title, source, link, ai_summary per item (R-5)", () => {
+  it("PR body file contains title, source, link, ai_summary, confidence per item (R-5)", () => {
     const items: EmittedItem[] = [makeEmitted()];
     const body = buildPrBody(items, "2026-05-18");
     expect(body).toContain("News triage 2026-05-18");
@@ -48,6 +49,21 @@ describe("pr.buildPrBody", () => {
     expect(body).toContain("Anthropic news");
     expect(body).toContain("https://example.com/x");
     expect(body).toContain("Sentence one. Sentence two.");
+    expect(body).toContain("[confidence: high]");
+  });
+
+  it("shows the confidence marker per item so reviewers can skim", () => {
+    const low = makeEmitted({
+      triage: {
+        relevant: true,
+        audience: "both",
+        topics: ["t"],
+        summary: "x. y.",
+        editor_confidence: "low",
+      },
+    });
+    const body = buildPrBody([low], "2026-05-18");
+    expect(body).toContain("[confidence: low]");
   });
 
   it("groups items by source name (alphabetically)", () => {

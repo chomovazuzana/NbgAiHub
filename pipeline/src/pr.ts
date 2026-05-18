@@ -44,7 +44,10 @@ export function buildPrBody(items: EmittedItem[], runDateUtc: string): string {
     const group = bySource.get(source) ?? [];
     for (const emitted of group) {
       const linkPart = emitted.item.link ? ` — [${emitted.item.link}](${emitted.item.link})` : "";
-      lines.push(`- **${emitted.item.title}** (source: ${emitted.item.feedName})${linkPart}`);
+      const confidence = emitted.triage.editor_confidence;
+      lines.push(
+        `- **${emitted.item.title}** [confidence: ${confidence}] (source: ${emitted.item.feedName})${linkPart}`,
+      );
       lines.push(`  - ${emitted.triage.summary}`);
     }
     lines.push("");

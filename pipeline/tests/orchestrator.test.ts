@@ -40,7 +40,7 @@ function makeMockClient(payloadByTitle: Record<string, string>): {
   const create = vi.fn(async (args: { messages: { role: string; content: string }[] }) => {
     const user = args.messages.find((m) => m.role === "user");
     const userText = user?.content ?? "";
-    let chosen = '{"relevant":true,"audience":"both","topics":["general"],"summary":"Default. Default."}';
+    let chosen = '{"relevant":true,"audience":"both","topics":["general"],"summary":"Default. Default.","editor_confidence":"high"}';
     for (const [title, payload] of Object.entries(payloadByTitle)) {
       if (userText.includes(title)) {
         chosen = payload;
@@ -174,8 +174,8 @@ describe("orchestrator.run", () => {
     const fetchImpl = vi.fn(async () => new Response(rss20, { status: 200 }));
     // All items rated irrelevant.
     const { client } = makeMockClient({
-      "Claude 4 launches": '{"relevant":false,"audience":"both","topics":[],"summary":"Not relevant."}',
-      "Constitutional AI 2.0 paper released": '{"relevant":false,"audience":"both","topics":[],"summary":"Not relevant."}',
+      "Claude 4 launches": '{"relevant":false,"audience":"both","topics":[],"summary":"Not relevant.","editor_confidence":"high"}',
+      "Constitutional AI 2.0 paper released": '{"relevant":false,"audience":"both","topics":[],"summary":"Not relevant.","editor_confidence":"high"}',
     });
     const { logger } = captureLogger();
 
@@ -233,7 +233,7 @@ describe("orchestrator.run", () => {
     const fetchImpl = vi.fn(async () => new Response(rss20, { status: 200 }));
     const { client, create } = makeMockClient({
       "Constitutional AI 2.0 paper released":
-        '{"relevant":true,"audience":"both","topics":["research"],"summary":"S1. S2."}',
+        '{"relevant":true,"audience":"both","topics":["research"],"summary":"S1. S2.","editor_confidence":"medium"}',
     });
     const { logger } = captureLogger();
 
