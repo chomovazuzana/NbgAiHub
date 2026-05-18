@@ -119,6 +119,36 @@ describe("triage.triageItem", () => {
     expect(SYSTEM_PROMPT).toContain("go LOWER, not higher");
   });
 
+  it("Reddit rules reject celebratory personal-project / tool-announcement / cost / jargon / setup-story content", () => {
+    expect(SYSTEM_PROMPT).toContain("Celebratory personal-project");
+    expect(SYSTEM_PROMPT).toContain("Tool / extension / library / template announcements");
+    expect(SYSTEM_PROMPT).toContain("Personal setup / infrastructure stories");
+    expect(SYSTEM_PROMPT).toContain("Cost-tracking");
+    expect(SYSTEM_PROMPT).toContain("Reddit subculture jargon");
+  });
+
+  it("field-report category requires generalizability + instructive-not-celebratory", () => {
+    expect(SYSTEM_PROMPT).toContain("DIFFERENT project");
+    expect(SYSTEM_PROMPT).toContain("generalizable");
+    expect(SYSTEM_PROMPT).toContain("INSTRUCTIVE, not CELEBRATORY");
+  });
+
+  it("title-scannability cross-cutting rule is present", () => {
+    expect(SYSTEM_PROMPT).toContain("Title scannability");
+    expect(SYSTEM_PROMPT).toContain("self-describing to a bank colleague");
+  });
+
+  it("anchored REJECT examples include the user-flagged real titles", () => {
+    expect(SYSTEM_PROMPT).toContain("Claude Code helped me bring my dead passion project back to life");
+    expect(SYSTEM_PROMPT).toContain("DystopiaBench");
+    expect(SYSTEM_PROMPT).toContain("tracked every dollar");
+    expect(SYSTEM_PROMPT).toContain("dog walks");
+  });
+
+  it("capability-driven model-selection content stays accept (distinct from cost-driven)", () => {
+    expect(SYSTEM_PROMPT).toContain("capability-driven model-selection");
+  });
+
   it("drops items marked irrelevant (returns null)", async () => {
     const payload = JSON.stringify({
       relevant: false,

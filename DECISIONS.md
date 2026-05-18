@@ -289,6 +289,38 @@ The REJECT list was extended in the same edit to keep the categories tight: now 
 
 ---
 
+## 2026-05-18 — Reddit triage tightening round 2: generalizability, scannability, anti-promo
+
+**Decision:** Significant tightening of the Reddit-group rules in `SYSTEM_PROMPT`, driven by user review of the 21 admits in PR #3. Twelve of those admits (≈57%) were judged borderline or wrong by the user. Encoding the rejection patterns as explicit prompt rules + anchored examples.
+
+**Rule additions:**
+
+1. **Field-report rule sharpened** — must be *generalizable to a DIFFERENT project*, must be *primarily instructive, not celebratory*. Smell test: strip out the author's specific project; does anything teachable remain? If no, reject. Resolves the "Claude Code helped me bring my dead passion project back to life" pattern.
+
+2. **New cross-cutting rule (5): title scannability.** The TITLE alone must be self-describing to a bank colleague who doesn't follow r/ClaudeAI / r/ClaudeCode memes. Opaque titles ("I didn't think this was possible", "my code is play-dough", "playing with X"), inside-joke titles ("DystopiaBench / Claude is still the only one I'd trust with nuclear codes"), and teaser-style framing get rejected regardless of body substance. Reasoning: users scan a list — if they'd skip the title, the item has no surface area.
+
+3. **Six new Reddit REJECT categories:**
+   - Celebratory personal-project posts (passion projects, side hustles, hobby apps, "look what Claude did for MY thing")
+   - Tool / extension / library / template announcements ("I built X", "introducing Y", "claudebox", "VS Code extension") — even when well-described; the post exists to promote
+   - Personal setup / infrastructure stories ("I gave Claude access to MY vault / notes / server")
+   - Cost-tracking / spending / "I saved $X" content — bank uses enterprise licensing, dollar-spend is not the audience's concern
+   - Reddit subculture jargon ("vibe coders", "vibe coded", "low-effort coder", subreddit catchphrases) in titles or framing
+   - Feedback-solicitation posts ("roast my X") — these are questions in disguise
+
+4. **Explicit clarification kept ACCEPT:** capability-driven model-selection content (when to use Opus vs Sonnet vs Haiku for task-fit reasons) stays. Only *cost-driven* model-selection is out. The bank cares about correct usage, not optimization.
+
+5. **Eleven anchored REJECT examples** baked into the prompt, drawn from actual PR #3 titles the user flagged: passion project, dog walks, dollar tracking, DystopiaBench, certification cheerleading, code-is-play-dough, VS Code extension promo, claudebox tool, Obsidian vault setup, "I didn't think this was possible", "playing with Jupyter playbooks".
+
+**Why anchor examples in the prompt:** the model demonstrated in PRs #2 and #3 that abstract rules ("reject promo") were interpreted too narrowly. Naming real titles forces the model to pattern-match against concrete shapes, not its own loose interpretation.
+
+**Prompt size impact:** ~30 lines added to SYSTEM_PROMPT (now ~95 lines, ~1700 tokens). Well within the model's effective system-prompt context; temperature=0 keeps it deterministic.
+
+**Cost impact:** none — same number of items triaged, same model, same temperature.
+
+**Status:** accepted; deployed in the same workflow_dispatch run that produces PR #4.
+
+---
+
 ## 2026-05-18 — RSS cron pinned to 05:00 UTC (= 08:00 Europe/Athens DST)
 
 **Decision:** Daily cron changed from `0 6 * * *` (06:00 UTC) to `0 5 * * *` (05:00 UTC). At today's date (2026-05-18, DST active in Athens, UTC+3) this lands at **08:00 Europe/Athens**. In winter (Athens UTC+2) it will land at 07:00 Athens.
