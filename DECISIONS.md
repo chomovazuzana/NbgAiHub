@@ -434,7 +434,7 @@ The REJECT list was extended in the same edit to keep the categories tight: now 
 **Evidence:**
 
 - `cd plugin && npm install` → 210 packages, 0 vulnerabilities.
-- `npm test` → **108/108 tests pass** across 11 test files (manifest, errors, snapshot, url-builder, config, state, frontmatter, search, audience, journeys, output).
+- `npm test` → **130/130 tests pass** across 13 test files (manifest, errors, snapshot, url-builder, config, state, frontmatter, search, audience, journeys, output, content, plus an end-to-end suite that spawns each compiled `dist/<cmd>.mjs` against the real snapshot).
 - `npm run typecheck` → 0 errors.
 - `npm run lint` → 0 errors, 0 warnings.
 - `npm run build` → 11 bundled entries in `dist/*.mjs` (esbuild ESM, externalized deps).

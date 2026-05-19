@@ -52,14 +52,29 @@ A curated Claude Code knowledge hub for bank colleagues, framed around *"what I 
 │   ├── scripts/               ← build-pin-index.ts (pre-build step emitting public/_data/<type>-index.json)
 │   ├── public/_data/          ← build-emitted JSON indices (5 files, one per content type)
 │   └── tests/                 ← 7 test files, 127 tests (auth, api-fetch, gist, submission, pin-store, build-pin-index, slug)
+├── plugin/                   ← Claude Code plugin workspace — eleven /hub-* commands
+│   ├── package.json           ← Node 22, ESM, vitest 4.x, esbuild ^0.25 (deps: gray-matter, js-yaml, open)
+│   ├── tsconfig.json          ← strict TS (mirror of pipeline/)
+│   ├── esbuild.config.mjs     ← bundles src/<cmd>.ts → dist/<cmd>.mjs with packages: "external"
+│   ├── config.json            ← URL config (devMode flag), search weights, refresh cache path
+│   ├── .claude-plugin/        ← Claude Code spec dir
+│   │   └── plugin.json        ← plugin manifest (name/description/author; NO commands array, NO version)
+│   ├── commands/              ← 11 markdown command shells, filesystem-discovered by Claude Code
+│   ├── src/                   ← 11 entry scripts (hub.ts, hub-search.ts, …) + lib/ (13 shared modules)
+│   ├── snapshot/              ← bundled content snapshot (built by scripts/build-snapshot.mjs)
+│   ├── scripts/build-snapshot.mjs ← mirrors repo's glossary/tips/skills/news/journeys into snapshot/
+│   ├── dist/                  ← esbuild output (gitignored except .gitkeep)
+│   └── tests/                 ← 13 test files, 130 tests (12 lib + manifest + e2e entry-script smoke)
+├── .claude-plugin/            ← repo-root marketplace manifest for /plugin marketplace add chomovazuzana/NbgAiHub
+│   └── marketplace.json       ← lists nbg-ai-hub with source: "./plugin"
 ├── .github/workflows/
 │   ├── rss-triage.yml         ← daily cron 05:00 UTC = 08:00 Athens (DST) + workflow_dispatch
 │   └── validate-skill-submission.yml ← PR-on-skills/**/*.md → CI validator → GH Actions annotations
 └── docs/
-    ├── design/                ← project-design.md (§1-S.12 + §P.1-P.13 personalization), plan-001/002/003
+    ├── design/                ← project-design.md (§1-S.12 + §P.1-P.13 personalization + §H.1-H.13 hub plugin), plan-001/002/003 (RSS / site / hub plugin)
     ├── reference/             ← code-review, dep-validation, integration-verification, test-build,
-    │                            codebase-scans, investigations, gist-contract.md
-    ├── refined-requests/      ← refined specs (rss-pipeline, astro-starlight-site, personalization-and-contributions)
+    │                            codebase-scans, investigations, gist-contract.md (incl. hub-plugin set)
+    ├── refined-requests/      ← refined specs (rss-pipeline, astro-starlight-site, personalization-and-contributions, hub-plugin)
     └── tools/                 ← per-tool docs per global CLAUDE.md convention (skill-validator.md)
 ```
 
@@ -77,7 +92,7 @@ Final name: **NbgAiHub**. Repo: `github.com/chomovazuzana/NbgAiHub`.
 ## Ports
 
 - **Astro Starlight dev server: `4321`** (in use — `cd site && npm run dev`). Fallback band 4322–4329 per global port rules.
-- No other dev servers planned for MVP.
+- No other dev servers planned for MVP. The plugin's `/hub-open` *probes* localhost:4321 (no server of its own) when `devMode: true`.
 
 ## Project tools
 
