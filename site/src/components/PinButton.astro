@@ -1,0 +1,330 @@
+---
+// PinButton.astro — Per-item pin/unpin button (Step P-C2, project-design.md §P.4.4).
+//
+// The button is always rendered server-side as a `<button>` carrying
+// `data-pin-type` and `data-pin-slug` attributes. All state — visibility,
+// label, aria-pressed — is decided by the client `<script>` block below, which
+// reads `auth.readToken()` and calls into `gist.ts` for pin/unpin operations.
+//
+// Hidden by default (CSS `[hidden]`); the script flips it visible after it
+// determines auth state, so SSR + no-JS renders an inert page rather than a
+// flash of unhydrated "Pin" buttons.
+//
+// All pin/unpin logic goes through gist.ts — there are no scattered fetch
+// calls in this file. The button optimistically updates the UI before the
+// network call resolves and reverts on failure.
+
+export type PinType = 'news' | 'skill' | 'tip' | 'glossary' | 'journey-step';
+
+interface Props {
+  type: PinType;
+  slug: string;
+}
+
+const { type, slug } = Astro.props;
+---
+
+<button
+  type="button"
+  class="nbg-pin"
+  data-pin-type={type}
+  data-pin-slug={slug}
+  aria-pressed="false"
+  aria-label="Sign in to pin"
+  hidden
+>
+  <span class="nbg-pin__icon" aria-hidden="true">📌</span>
+  <span class="nbg-pin__label">Sign in to pin</span>
+</button>
+
+<style>
+  .nbg-pin {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.3rem;
+    border: 1px solid var(--sl-color-gray-5);
+    background: transparent;
+    color: var(--sl-color-text);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.8rem;
+    line-height: 1;
+  }
+  .nbg-pin:hover {
+    background: var(--sl-color-gray-6);
+    color: var(--sl-color-text-accent);
+  }
+  .nbg-pin:focus-visible {
+    outline: 2px solid var(--sl-color-accent);
+    outline-offset: 2px;
+  }
+  .nbg-pin[aria-pressed='true'] {
+    border-color: var(--sl-color-accent);
+    background: var(--sl-color-gray-6);
+    color: var(--sl-color-text-accent);
+  }
+  .nbg-pin[disabled] {
+    opacity: 0.6;
+    cursor: progress;
+  }
+  .nbg-pin__icon {
+    font-size: 0.85rem;
+  }
+</style>
+
+<script>
+  // Bundled by Vite as an ES module — same pattern as SocialIconsOverride.astro.
+  import { readToken, subscribe } from '../lib/auth.ts';
+  import {
+    findOrCreateFavoritesGist,
+    addFavorite,
+    removeFavorite,
+    type FavoritesDocument,
+  } from '../lib/gist.ts';
+
+  type PinType = 'news' | 'skill' | 'tip' | 'glossary' | 'journey-step';
+
+  type PageCache = {
+    gistId: string;
+    document: FavoritesDocument;
+  };
+
+  // Memoised promise of the favourites doc for this page load (one fetch per
+  // visit, shared across every button on the page).
+  let cachePromise: Promise<PageCache> | null = null;
+
+  function loadFavoritesCache(token: string): Promise<PageCache> {
+    if (cachePromise === null) {
+      cachePromise = findOrCreateFavoritesGist(token).then((result) => ({
+        gistId: result.gistId,
+        document: result.document,
+      }));
+    }
+    return cachePromise;
+  }
+
+  function resetFavoritesCache(): void {
+    cachePromise = null;
+  }
+
+  function isPinned(doc: FavoritesDocument, type: PinType, slug: string): boolean {
+    return doc.favourites.some((f) => f.type === type && f.slug === slug);
+  }
+
+  function setSignedOut(btn: HTMLButtonElement): void {
+    btn.hidden = false;
+    btn.disabled = false;
+    btn.setAttribute('aria-pressed', 'false');
+    btn.setAttribute('aria-label', 'Sign in to pin');
+    btn.removeAttribute('title');
+    const label = btn.querySelector<HTMLElement>('.nbg-pin__label');
+    if (label) label.textContent = 'Sign in to pin';
+  }
+
+  function setSignedInState(btn: HTMLButtonElement, pinned: boolean): void {
+    btn.hidden = false;
+    btn.disabled = false;
+    btn.setAttribute('aria-pressed', pinned ? 'true' : 'false');
+    btn.setAttribute('aria-label', pinned ? 'Unpin' : 'Pin');
+    btn.removeAttribute('title');
+    const icon = btn.querySelector<HTMLElement>('.nbg-pin__icon');
+    const label = btn.querySelector<HTMLElement>('.nbg-pin__label');
+    if (icon) icon.textContent = pinned ? '✅' : '📌';
+    if (label) label.textContent = pinned ? 'Pinned' : 'Pin';
+  }
+
+  function getMeta(btn: HTMLButtonElement): { type: PinType; slug: string } | null {
+    const type = btn.dataset.pinType as PinType | undefined;
+    const slug = btn.dataset.pinSlug;
+    if (!type || !slug) return null;
+    return { type, slug };
+  }
+
+  function onSignedOutClick(_event: MouseEvent): void {
+    document.dispatchEvent(new CustomEvent('nbgaihub:open-signin-modal'));
+  }
+
+  function bindSignedOutHandler(btn: HTMLButtonElement): void {
+    // Idempotent — store the handler on the element so we can replace it on
+    // state changes without leaking listeners.
+    const existing = (btn as any).__nbgPinHandler as
+      | ((e: MouseEvent) => void)
+      | undefined;
+    if (existing) btn.removeEventListener('click', existing);
+    (btn as any).__nbgPinHandler = onSignedOutClick;
+    btn.addEventListener('click', onSignedOutClick);
+  }
+
+  function bindSignedInHandler(
+    btn: HTMLButtonElement,
+    token: string,
+    cache: PageCache,
+  ): void {
+    const meta = getMeta(btn);
+    if (!meta) return;
+
+    const handler = async (_event: MouseEvent): Promise<void> => {
+      const currentlyPinned = btn.getAttribute('aria-pressed') === 'true';
+      const nextPinned = !currentlyPinned;
+
+      // Optimistic UI flip.
+      setSignedInState(btn, nextPinned);
+      btn.disabled = true;
+
+      try {
+        let updated: FavoritesDocument;
+        if (nextPinned) {
+          updated = await addFavorite(token, cache.gistId, {
+            type: meta.type,
+            slug: meta.slug,
+            pinned_at: new Date().toISOString().slice(0, 10),
+          });
+        } else {
+          updated = await removeFavorite(token, cache.gistId, {
+            type: meta.type,
+            slug: meta.slug,
+          });
+        }
+        cache.document = updated;
+        btn.disabled = false;
+        // Confirm visual state (in case of dedup no-ops).
+        setSignedInState(btn, isPinned(updated, meta.type, meta.slug));
+      } catch (err) {
+        // Revert.
+        setSignedInState(btn, currentlyPinned);
+        btn.disabled = false;
+        const msg = err instanceof Error ? err.message : String(err);
+        btn.title = `Pin failed: ${msg}`;
+      }
+    };
+
+    const existing = (btn as any).__nbgPinHandler as
+      | ((e: MouseEvent) => void)
+      | undefined;
+    if (existing) btn.removeEventListener('click', existing);
+    (btn as any).__nbgPinHandler = handler;
+    btn.addEventListener('click', handler);
+  }
+
+  function applyAnonymousState(buttons: HTMLButtonElement[]): void {
+    for (const btn of buttons) {
+      setSignedOut(btn);
+      bindSignedOutHandler(btn);
+    }
+  }
+
+  async function applyAuthenticatedState(
+    buttons: HTMLButtonElement[],
+    token: string,
+  ): Promise<void> {
+    // Show buttons immediately in a loading state.
+    for (const btn of buttons) {
+      btn.hidden = false;
+      btn.disabled = true;
+      btn.setAttribute('aria-label', 'Loading');
+      const label = btn.querySelector<HTMLElement>('.nbg-pin__label');
+      if (label) label.textContent = '…';
+    }
+
+    let cache: PageCache;
+    try {
+      cache = await loadFavoritesCache(token);
+    } catch (err) {
+      // Cache failed — surface as error tooltip; keep buttons visible but
+      // re-enabled in unpinned state. Reset cache promise so a later click
+      // can retry.
+      resetFavoritesCache();
+      for (const btn of buttons) {
+        setSignedInState(btn, false);
+        const msg = err instanceof Error ? err.message : String(err);
+        btn.title = `Could not load favourites: ${msg}`;
+        bindSignedInHandlerWithRetry(btn, token);
+      }
+      return;
+    }
+
+    for (const btn of buttons) {
+      const meta = getMeta(btn);
+      if (!meta) continue;
+      setSignedInState(btn, isPinned(cache.document, meta.type, meta.slug));
+      bindSignedInHandler(btn, token, cache);
+    }
+  }
+
+  /** Bind a handler that retries cache load on click after a previous failure. */
+  function bindSignedInHandlerWithRetry(
+    btn: HTMLButtonElement,
+    token: string,
+  ): void {
+    const handler = async (_event: MouseEvent): Promise<void> => {
+      btn.disabled = true;
+      try {
+        const cache = await loadFavoritesCache(token);
+        const meta = getMeta(btn);
+        if (!meta) {
+          btn.disabled = false;
+          return;
+        }
+        setSignedInState(btn, isPinned(cache.document, meta.type, meta.slug));
+        bindSignedInHandler(btn, token, cache);
+      } catch (err) {
+        resetFavoritesCache();
+        btn.disabled = false;
+        const msg = err instanceof Error ? err.message : String(err);
+        btn.title = `Could not load favourites: ${msg}`;
+      }
+    };
+    const existing = (btn as any).__nbgPinHandler as
+      | ((e: MouseEvent) => void)
+      | undefined;
+    if (existing) btn.removeEventListener('click', existing);
+    (btn as any).__nbgPinHandler = handler;
+    btn.addEventListener('click', handler);
+  }
+
+  function readAuthState(): { token: string } | null {
+    try {
+      return readToken();
+    } catch {
+      // localStorage unavailable — treat as signed-out, never throw.
+      return null;
+    }
+  }
+
+  async function render(buttons: HTMLButtonElement[]): Promise<void> {
+    const state = readAuthState();
+    if (state === null) {
+      resetFavoritesCache();
+      applyAnonymousState(buttons);
+      return;
+    }
+    await applyAuthenticatedState(buttons, state.token);
+  }
+
+  function collect(): HTMLButtonElement[] {
+    return Array.from(
+      document.querySelectorAll<HTMLButtonElement>('button[data-pin-type]'),
+    );
+  }
+
+  function init(): void {
+    const buttons = collect();
+    if (buttons.length === 0) return;
+
+    void render(buttons);
+
+    subscribe(() => {
+      // Auth state changed — drop cached gist doc and re-render every button.
+      resetFavoritesCache();
+      void render(collect());
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
+  }
+</script>

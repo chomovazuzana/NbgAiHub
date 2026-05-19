@@ -1,0 +1,1072 @@
+---
+// site/src/pages/submit-skill.astro
+//
+// /submit-skill/ — anonymous-accessible submission form for the skills
+// catalogue (project-design.md §S.10 / AC suite A1–A24).
+//
+// Flow (client-side only — no server, no auth):
+//   user fills form
+//     -> live validation via validateSkillForm
+//     -> opportunistic slug-collision check via checkSlugCollision
+//     -> on submit:
+//          serializeSkillToMarkdown(form) -> markdown
+//          buildEditorUrl(slug, markdown) -> { url, fitsInUrl }
+//          fits  -> window.open(url, '_blank', 'noopener') (A24)
+//          !fits -> copyToClipboard(markdown) + manual paste UI (A12)
+//
+// Per project rules: this file owns only the page shell + a thin client
+// `<script>`. ALL validation/serialization/URL/clipboard/collision logic
+// lives in `src/lib/submission.ts` and is imported, never duplicated.
+
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+---
+
+<StarlightPage frontmatter={{ title: 'Submit a Skill' }}>
+  <p>
+    Add a skill to the NbgAiHub marketplace. Fill in the form below, click
+    Submit, and your entry will open in GitHub's editor pre-filled — review
+    and click <strong>Propose new file</strong> there. A CI validator will
+    check your submission on the resulting pull request.
+  </p>
+
+  <form id="submit-skill-form" novalidate aria-describedby="submit-skill-intro">
+    <p id="submit-skill-intro" class="sr-only">
+      All fields with an asterisk are required. Validation runs as you type;
+      a summary of any problems appears above the Submit button.
+    </p>
+
+    {/* Section 1 — Identity */}
+    <fieldset class="submit-section">
+      <legend>1. Identity</legend>
+
+      <div class="field">
+        <label for="field-title">Title <span aria-hidden="true">*</span></label>
+        <input
+          id="field-title"
+          name="title"
+          type="text"
+          maxlength="80"
+          required
+          aria-required="true"
+          aria-describedby="hint-title err-title"
+        />
+        <p id="hint-title" class="hint">
+          Max 80 characters. The slug below is derived from this.
+        </p>
+        <p id="err-title" class="field-error" hidden role="alert"></p>
+      </div>
+
+      <div class="field">
+        <label for="field-skill_id">
+          Skill ID (slug) <span aria-hidden="true">*</span>
+        </label>
+        <input
+          id="field-skill_id"
+          name="skill_id"
+          type="text"
+          required
+          aria-required="true"
+          aria-describedby="hint-skill_id err-skill_id collision-status"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <p id="hint-skill_id" class="hint">
+          Auto-derived from Title — edit if the suggestion isn't ideal. Must
+          match <code>^[a-z0-9-]+$</code>.
+        </p>
+        <p id="collision-status" class="collision-status" data-collision-status>
+          &nbsp;
+        </p>
+        <p id="err-skill_id" class="field-error" hidden role="alert"></p>
+      </div>
+
+      <div class="field">
+        <label for="field-maintainer">
+          Maintainer <span aria-hidden="true">*</span>
+        </label>
+        <input
+          id="field-maintainer"
+          name="maintainer"
+          type="text"
+          required
+          aria-required="true"
+          placeholder="@octocat"
+          aria-describedby="hint-maintainer err-maintainer"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <p id="hint-maintainer" class="hint">
+          GitHub handle like <code>@octocat</code>, or a team alias prefixed
+          with <code>@</code>.
+        </p>
+        <p id="err-maintainer" class="field-error" hidden role="alert"></p>
+      </div>
+    </fieldset>
+
+    {/* Section 2 — Discovery */}
+    <fieldset class="submit-section">
+      <legend>2. Discovery</legend>
+
+      <div class="field">
+        <label for="field-ai_summary">
+          One-paragraph summary <span aria-hidden="true">*</span>
+        </label>
+        <textarea
+          id="field-ai_summary"
+          name="ai_summary"
+          rows="3"
+          required
+          aria-required="true"
+          aria-describedby="hint-ai_summary err-ai_summary"
+        ></textarea>
+        <p id="hint-ai_summary" class="hint">
+          One paragraph — what does this skill do, and when would you reach
+          for it?
+        </p>
+        <p id="err-ai_summary" class="field-error" hidden role="alert"></p>
+      </div>
+
+      <div class="field">
+        <label for="field-topics">
+          Topics <span aria-hidden="true">*</span>
+        </label>
+        <input
+          id="field-topics"
+          name="topics"
+          type="text"
+          required
+          aria-required="true"
+          placeholder="api, scaffolding"
+          aria-describedby="hint-topics err-topics"
+          autocomplete="off"
+        />
+        <p id="hint-topics" class="hint">
+          Comma-separated list. At least one topic.
+        </p>
+        <p id="err-topics" class="field-error" hidden role="alert"></p>
+      </div>
+
+      <div class="field">
+        <label for="field-audience">
+          Audience <span aria-hidden="true">*</span>
+        </label>
+        <select
+          id="field-audience"
+          name="audience"
+          required
+          aria-required="true"
+          aria-describedby="err-audience"
+        >
+          <option value="beginner">beginner</option>
+          <option value="advanced">advanced</option>
+          <option value="both">both</option>
+        </select>
+        <p id="err-audience" class="field-error" hidden role="alert"></p>
+      </div>
+
+      <div class="field">
+        <label for="field-origin">
+          Origin <span aria-hidden="true">*</span>
+        </label>
+        <select
+          id="field-origin"
+          name="origin"
+          required
+          aria-required="true"
+          aria-describedby="err-origin"
+        >
+          <option value="internal">internal</option>
+          <option value="community">community</option>
+          <option value="external">external</option>
+        </select>
+        <p id="err-origin" class="field-error" hidden role="alert"></p>
+      </div>
+
+      <div class="field">
+        <label for="field-category">
+          Category <span aria-hidden="true">*</span>
+        </label>
+        <select
+          id="field-category"
+          name="category"
+          required
+          aria-required="true"
+          aria-describedby="err-category"
+        >
+          <option value="workflow">workflow</option>
+          <option value="code">code</option>
+          <option value="docs">docs</option>
+          <option value="integration">integration</option>
+          <option value="productivity">productivity</option>
+          <option value="testing">testing</option>
+          <option value="other">other</option>
+        </select>
+        <p id="err-category" class="field-error" hidden role="alert"></p>
+      </div>
+
+      <div class="field">
+        <label for="field-status">
+          Status <span aria-hidden="true">*</span>
+        </label>
+        <select
+          id="field-status"
+          name="status"
+          required
+          aria-required="true"
+          aria-describedby="err-status"
+        >
+          <option value="active" selected>active</option>
+          <option value="experimental">experimental</option>
+          <option value="deprecated">deprecated</option>
+        </select>
+        <p id="err-status" class="field-error" hidden role="alert"></p>
+      </div>
+    </fieldset>
+
+    {/* Section 3 — Install */}
+    <fieldset class="submit-section">
+      <legend>3. Install</legend>
+
+      <div class="field">
+        <label for="field-install_command">
+          Install command <span aria-hidden="true">*</span>
+        </label>
+        <input
+          id="field-install_command"
+          name="install_command"
+          type="text"
+          required
+          aria-required="true"
+          placeholder="/plugin marketplace add owner/repo"
+          aria-describedby="hint-install_command err-install_command"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <p id="hint-install_command" class="hint">
+          Must start with <code>/plugin marketplace add&nbsp;</code> or
+          <code>/plugin install&nbsp;</code>.
+        </p>
+        <p id="err-install_command" class="field-error" hidden role="alert"></p>
+      </div>
+
+      <div class="field">
+        <label for="field-requires">Requires</label>
+        <input
+          id="field-requires"
+          name="requires"
+          type="text"
+          placeholder="Node 20+, Azure OpenAI key"
+          aria-describedby="hint-requires err-requires"
+        />
+        <p id="hint-requires" class="hint">
+          Comma-separated. Optional — leave blank if nothing special is
+          required.
+        </p>
+        <p id="err-requires" class="field-error" hidden role="alert"></p>
+      </div>
+    </fieldset>
+
+    {/* Section 4 — Links */}
+    <fieldset class="submit-section">
+      <legend>4. Links</legend>
+
+      <div class="field">
+        <label for="field-external_link">Repo URL</label>
+        <input
+          id="field-external_link"
+          name="external_link"
+          type="url"
+          placeholder="https://github.com/owner/repo"
+          aria-describedby="hint-external_link err-external_link"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <p id="hint-external_link" class="hint">Optional.</p>
+        <p id="err-external_link" class="field-error" hidden role="alert"></p>
+      </div>
+
+      <div class="field">
+        <label for="field-deeper_link">Deeper docs / journey link</label>
+        <input
+          id="field-deeper_link"
+          name="deeper_link"
+          type="url"
+          placeholder="https://example.com/docs"
+          aria-describedby="hint-deeper_link err-deeper_link"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <p id="hint-deeper_link" class="hint">Optional.</p>
+        <p id="err-deeper_link" class="field-error" hidden role="alert"></p>
+      </div>
+
+      <div class="field field--checkbox">
+        <input
+          id="field-internal"
+          name="internal"
+          type="checkbox"
+          aria-describedby="hint-internal"
+        />
+        <label for="field-internal">Internal (team-only) skill</label>
+        <p id="hint-internal" class="hint">
+          Tick if this skill is for the bank's internal AI unit only.
+        </p>
+      </div>
+    </fieldset>
+
+    {/* Section 5 — Body */}
+    <fieldset class="submit-section">
+      <legend>5. Body</legend>
+
+      <div class="field">
+        <label for="field-body">
+          Body (markdown) <span aria-hidden="true">*</span>
+        </label>
+        <textarea
+          id="field-body"
+          name="body"
+          rows="12"
+          required
+          aria-required="true"
+          aria-describedby="hint-body err-body"
+        ></textarea>
+        <p id="hint-body" class="hint">
+          What does this skill do? Gotchas, screenshots, anything you wish
+          you'd known. Markdown is supported.
+        </p>
+        <p id="err-body" class="field-error" hidden role="alert"></p>
+      </div>
+    </fieldset>
+
+    {/* Submit area */}
+    <section
+      class="submit-area"
+      aria-labelledby="submit-area-heading"
+    >
+      <h2 id="submit-area-heading" class="sr-only">Submit</h2>
+
+      <div
+        class="error-summary"
+        data-error-summary
+        role="alert"
+        aria-live="polite"
+        hidden
+      >
+        <h3>Fix these before submitting</h3>
+        <ul data-error-summary-list></ul>
+      </div>
+
+      <div
+        class="status-box"
+        data-status-box
+        role="status"
+        aria-live="polite"
+        hidden
+      ></div>
+
+      <div class="fallback-box" data-fallback-box hidden>
+        <p data-fallback-message></p>
+        <p>
+          <a
+            data-fallback-bare-link
+            href="https://github.com/chomovazuzana/NbgAiHub/new/main/skills"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="primary-link"
+          >Open GitHub editor</a>
+        </p>
+        <details data-fallback-manual hidden>
+          <summary>Clipboard isn't available — copy this manually</summary>
+          <textarea
+            data-fallback-textarea
+            readonly
+            rows="14"
+            aria-label="Markdown to copy"
+          ></textarea>
+        </details>
+      </div>
+
+      <button
+        type="submit"
+        id="submit-button"
+        data-submit-button
+        disabled
+        aria-describedby="submit-note"
+      >Submit</button>
+
+      <p id="submit-note" class="submit-note">
+        This form does not require sign-in. Clicking Submit opens GitHub's
+        editor with the file pre-filled.
+      </p>
+    </section>
+  </form>
+
+  {/* Privacy callout */}
+  <aside class="submit-privacy" aria-label="Privacy">
+    <h3>Privacy</h3>
+    <p>
+      This form does not collect any data. Your submission goes directly to
+      GitHub's editor in your browser — neither the hub nor any third party
+      sees what you type before you click <strong>Propose new file</strong>
+      on GitHub.
+    </p>
+  </aside>
+</StarlightPage>
+
+<style>
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .submit-section {
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem 1.25rem;
+    margin: 0;
+  }
+  .submit-section > legend {
+    font-weight: 700;
+    padding: 0 0.4rem;
+    color: var(--sl-color-text-accent);
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    margin-top: 0.85rem;
+  }
+  .field:first-of-type {
+    margin-top: 0;
+  }
+  .field label {
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+    color: var(--sl-color-text);
+  }
+  .field input[type='text'],
+  .field input[type='url'],
+  .field select,
+  .field textarea {
+    font: inherit;
+    padding: 0.45rem 0.55rem;
+    border-radius: 0.35rem;
+    border: 1px solid var(--sl-color-gray-5);
+    background: var(--sl-color-bg);
+    color: var(--sl-color-text);
+  }
+  .field textarea {
+    resize: vertical;
+    min-height: 4rem;
+    font-family: var(--sl-font-mono, ui-monospace, SFMono-Regular, monospace);
+    font-size: 0.95em;
+  }
+  .field input:focus-visible,
+  .field select:focus-visible,
+  .field textarea:focus-visible {
+    outline: 2px solid var(--sl-color-accent);
+    outline-offset: 1px;
+  }
+
+  .field--checkbox {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .field--checkbox label {
+    margin: 0;
+    font-weight: 500;
+  }
+  .field--checkbox .hint {
+    flex-basis: 100%;
+  }
+
+  .hint {
+    font-size: 0.85em;
+    margin: 0.3rem 0 0;
+    color: var(--sl-color-gray-3);
+  }
+
+  .field-error {
+    font-size: 0.85em;
+    margin: 0.3rem 0 0;
+    color: #e60;
+  }
+
+  .collision-status {
+    font-size: 0.85em;
+    margin: 0.3rem 0 0;
+    min-height: 1.2em;
+  }
+  .collision-status[data-collision-state='checking'] {
+    color: var(--sl-color-gray-3);
+  }
+  .collision-status[data-collision-state='free'] {
+    color: #4caf50;
+  }
+  .collision-status[data-collision-state='collision'] {
+    color: #e60;
+    font-weight: 600;
+  }
+  .collision-status[data-collision-state='unknown'] {
+    color: var(--sl-color-gray-3);
+    font-style: italic;
+  }
+
+  .submit-area {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+    background: var(--sl-color-gray-6);
+  }
+
+  .error-summary {
+    padding: 0.7rem 0.9rem;
+    border-radius: 0.4rem;
+    background: rgba(230, 102, 0, 0.12);
+    border: 1px solid rgba(230, 102, 0, 0.4);
+    color: var(--sl-color-text);
+  }
+  .error-summary h3 {
+    margin: 0 0 0.4rem;
+    font-size: 1rem;
+    color: #e60;
+  }
+  .error-summary ul {
+    margin: 0;
+    padding-left: 1.2rem;
+  }
+
+  .status-box {
+    padding: 0.7rem 0.9rem;
+    border-radius: 0.4rem;
+    background: rgba(76, 175, 80, 0.12);
+    border: 1px solid rgba(76, 175, 80, 0.4);
+    color: var(--sl-color-text);
+  }
+
+  .fallback-box {
+    padding: 0.75rem 0.9rem;
+    border-radius: 0.4rem;
+    background: rgba(33, 150, 243, 0.1);
+    border: 1px solid rgba(33, 150, 243, 0.4);
+  }
+  .fallback-box p {
+    margin: 0 0 0.5rem;
+  }
+  .fallback-box textarea {
+    width: 100%;
+    min-height: 12rem;
+    font-family: var(--sl-font-mono, ui-monospace, SFMono-Regular, monospace);
+    font-size: 0.85em;
+    padding: 0.5rem;
+    border-radius: 0.35rem;
+    border: 1px solid var(--sl-color-gray-5);
+  }
+  .primary-link {
+    display: inline-flex;
+    padding: 0.4rem 0.85rem;
+    border-radius: 0.35rem;
+    background: var(--sl-color-accent);
+    color: var(--sl-color-white);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .primary-link:hover {
+    filter: brightness(1.08);
+  }
+
+  button[type='submit'] {
+    align-self: flex-start;
+    padding: 0.55rem 1.2rem;
+    border-radius: 0.4rem;
+    border: 1px solid var(--sl-color-accent);
+    background: var(--sl-color-accent);
+    color: var(--sl-color-white);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button[type='submit']:hover:not([disabled]) {
+    filter: brightness(1.08);
+  }
+  button[type='submit'][disabled] {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  button[type='submit']:focus-visible {
+    outline: 2px solid var(--sl-color-accent);
+    outline-offset: 2px;
+  }
+
+  .submit-note {
+    font-size: 0.85em;
+    margin: 0;
+    color: var(--sl-color-gray-3);
+  }
+
+  .submit-privacy {
+    margin-top: 2.5rem;
+    padding: 1rem 1.2rem;
+    border-left: 4px solid var(--sl-color-accent);
+    background: var(--sl-color-gray-6);
+    border-radius: 0 0.35rem 0.35rem 0;
+  }
+  .submit-privacy h3 {
+    margin-top: 0;
+  }
+</style>
+
+<script>
+  import {
+    serializeSkillToMarkdown,
+    buildEditorUrl,
+    validateSkillForm,
+    copyToClipboard,
+    checkSlugCollision,
+    deriveSlugFromTitle,
+    ClipboardUnavailableError,
+  } from '../lib/submission.ts';
+  import type {
+    SkillForm,
+    ValidationIssue,
+    SkillOrigin,
+    SkillCategory,
+    SkillStatus,
+    Audience,
+  } from '../lib/skill-types.ts';
+
+  type CollisionState = 'idle' | 'checking' | 'free' | 'collision' | 'unknown';
+
+  /** All field names that map 1:1 onto a SkillForm key. The matching DOM
+   *  elements have `id="field-<name>"` and `name="<name>"`. */
+  const SIMPLE_FIELD_NAMES = [
+    'title',
+    'skill_id',
+    'maintainer',
+    'ai_summary',
+    'topics',
+    'audience',
+    'origin',
+    'category',
+    'status',
+    'install_command',
+    'requires',
+    'external_link',
+    'deeper_link',
+    'body',
+  ] as const;
+
+  /** YYYY-MM-DD for "today" in the user's local timezone. We deliberately
+   *  use local time (not UTC) — the user's calendar day is what they intend
+   *  when they hit Submit. */
+  function todayIsoDate(): string {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function getField<T extends HTMLElement>(name: string): T | null {
+    return document.querySelector<T>(`#field-${name}`);
+  }
+
+  function getInputValue(name: string): string {
+    const el = getField<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(name);
+    return el === null ? '' : el.value;
+  }
+
+  function setInputValue(name: string, value: string): void {
+    const el = getField<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(name);
+    if (el !== null && el.value !== value) {
+      el.value = value;
+    }
+  }
+
+  function parseCommaList(raw: string): string[] {
+    return raw
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+  }
+
+  /** Collect everything currently in the DOM into a SkillForm. Defaults
+   *  match the spec for hidden fields (`type`, `internal`, `authored`,
+   *  `last_reviewed`). */
+  function collectForm(): SkillForm {
+    const today = todayIsoDate();
+    const internalEl = getField<HTMLInputElement>('internal');
+    const external = getInputValue('external_link').trim();
+    const deeper = getInputValue('deeper_link').trim();
+    const requires = parseCommaList(getInputValue('requires'));
+
+    return {
+      type: 'skill',
+      title: getInputValue('title').trim(),
+      audience: (getInputValue('audience') || 'beginner') as Audience,
+      topics: parseCommaList(getInputValue('topics')),
+      internal: internalEl !== null && internalEl.checked,
+      authored: today,
+      last_reviewed: today,
+      external_link: external.length > 0 ? external : null,
+      deeper_link: deeper.length > 0 ? deeper : null,
+      ai_summary: getInputValue('ai_summary').trim(),
+      install_command: getInputValue('install_command'),
+      skill_id: getInputValue('skill_id').trim(),
+      origin: (getInputValue('origin') || 'community') as SkillOrigin,
+      category: (getInputValue('category') || 'other') as SkillCategory,
+      status: (getInputValue('status') || 'active') as SkillStatus,
+      maintainer: getInputValue('maintainer').trim(),
+      requires: requires.length > 0 ? requires : undefined,
+      body: getInputValue('body'),
+    };
+  }
+
+  function clearAllFieldErrors(): void {
+    for (const name of SIMPLE_FIELD_NAMES) {
+      const err = document.getElementById(`err-${name}`);
+      if (err !== null) {
+        err.hidden = true;
+        err.textContent = '';
+      }
+    }
+  }
+
+  /** Render the issue list both inline-per-field and as a top-of-form
+   *  summary. Returns whether the form is currently valid. */
+  function applyValidationToUi(issues: ValidationIssue[]): void {
+    clearAllFieldErrors();
+
+    // Group issues by field, but the SkillForm `type`, `internal`, `authored`,
+    // `last_reviewed` fields have no visible UI; surface those in the summary
+    // only.
+    for (const issue of issues) {
+      const fieldName = issue.field as string;
+      const err = document.getElementById(`err-${fieldName}`);
+      if (err !== null) {
+        err.textContent = issue.message;
+        err.hidden = false;
+      }
+    }
+
+    const summary = document.querySelector<HTMLElement>('[data-error-summary]');
+    const list = document.querySelector<HTMLUListElement>(
+      '[data-error-summary-list]',
+    );
+    if (summary === null || list === null) return;
+
+    if (issues.length === 0) {
+      summary.hidden = true;
+      list.replaceChildren();
+      return;
+    }
+
+    const items = issues.map((issue) => {
+      const li = document.createElement('li');
+      li.textContent = `${String(issue.field)}: ${issue.message}`;
+      return li;
+    });
+    list.replaceChildren(...items);
+    summary.hidden = false;
+  }
+
+  // --- Collision check state machine -------------------------------------
+
+  let collisionState: CollisionState = 'idle';
+
+  function setCollisionUi(state: CollisionState, slug: string): void {
+    collisionState = state;
+    const el = document.querySelector<HTMLElement>('[data-collision-status]');
+    if (el === null) return;
+    switch (state) {
+      case 'idle':
+        el.textContent = ' ';
+        el.removeAttribute('data-collision-state');
+        return;
+      case 'checking':
+        el.textContent = 'Checking slug availability…';
+        el.setAttribute('data-collision-state', 'checking');
+        return;
+      case 'free':
+        el.textContent = `Available — "${slug}.md" is free.`;
+        el.setAttribute('data-collision-state', 'free');
+        return;
+      case 'collision':
+        el.textContent = `Taken — a skill with slug "${slug}" already exists. Pick a different one.`;
+        el.setAttribute('data-collision-state', 'collision');
+        return;
+      case 'unknown':
+        el.textContent = 'Check skipped (rate-limited). You can still submit.';
+        el.setAttribute('data-collision-state', 'unknown');
+        return;
+    }
+  }
+
+  async function runCollisionCheck(slug: string): Promise<void> {
+    if (slug.length === 0 || !/^[a-z0-9-]+$/.test(slug)) {
+      setCollisionUi('idle', '');
+      return;
+    }
+    setCollisionUi('checking', slug);
+    try {
+      const result = await checkSlugCollision(slug);
+      // Race-condition guard: only apply if the slug hasn't been edited
+      // since we kicked off this request.
+      if (getInputValue('skill_id').trim() !== slug) return;
+      setCollisionUi(result, slug);
+    } catch {
+      if (getInputValue('skill_id').trim() !== slug) return;
+      setCollisionUi('unknown', slug);
+    }
+  }
+
+  // --- Submit-button gating ----------------------------------------------
+
+  function updateSubmitButton(issues: ValidationIssue[]): void {
+    const btn = document.querySelector<HTMLButtonElement>('[data-submit-button]');
+    if (btn === null) return;
+    const blocked =
+      issues.length > 0 ||
+      collisionState === 'collision' ||
+      collisionState === 'checking';
+    btn.disabled = blocked;
+  }
+
+  // --- Status + fallback UI helpers --------------------------------------
+
+  function setStatus(message: string | null, tone: 'info' | 'error' = 'info'): void {
+    const box = document.querySelector<HTMLElement>('[data-status-box]');
+    if (box === null) return;
+    if (message === null) {
+      box.textContent = '';
+      box.hidden = true;
+      return;
+    }
+    box.textContent = message;
+    box.hidden = false;
+    if (tone === 'error') {
+      box.style.background = 'rgba(230, 102, 0, 0.12)';
+      box.style.borderColor = 'rgba(230, 102, 0, 0.4)';
+    } else {
+      box.style.background = '';
+      box.style.borderColor = '';
+    }
+  }
+
+  function showFallback(opts: {
+    message: string;
+    slug: string;
+    markdown: string;
+    manual: boolean;
+  }): void {
+    const box = document.querySelector<HTMLElement>('[data-fallback-box]');
+    const msg = document.querySelector<HTMLElement>('[data-fallback-message]');
+    const link = document.querySelector<HTMLAnchorElement>('[data-fallback-bare-link]');
+    const manual = document.querySelector<HTMLElement>('[data-fallback-manual]');
+    const textarea = document.querySelector<HTMLTextAreaElement>(
+      '[data-fallback-textarea]',
+    );
+    if (box === null || msg === null || link === null) return;
+
+    msg.textContent = opts.message;
+    link.href = `https://github.com/chomovazuzana/NbgAiHub/new/main/skills?filename=${encodeURIComponent(opts.slug)}.md`;
+
+    if (opts.manual && manual !== null && textarea !== null) {
+      textarea.value = opts.markdown;
+      manual.hidden = false;
+    } else if (manual !== null) {
+      manual.hidden = true;
+    }
+    box.hidden = false;
+  }
+
+  function hideFallback(): void {
+    const box = document.querySelector<HTMLElement>('[data-fallback-box]');
+    if (box !== null) box.hidden = true;
+  }
+
+  // --- Live-validation glue ----------------------------------------------
+
+  let validationTimer: number | null = null;
+
+  function runValidationNow(): ValidationIssue[] {
+    const form = collectForm();
+    const result = validateSkillForm(form);
+    const issues = result.ok ? [] : result.issues;
+    applyValidationToUi(issues);
+    updateSubmitButton(issues);
+    return issues;
+  }
+
+  function scheduleValidation(): void {
+    if (validationTimer !== null) {
+      window.clearTimeout(validationTimer);
+    }
+    validationTimer = window.setTimeout(() => {
+      validationTimer = null;
+      runValidationNow();
+    }, 200);
+  }
+
+  // --- Title -> slug auto-derivation -------------------------------------
+
+  /** True if the user has manually edited the slug — once they do, we stop
+   *  auto-overwriting it from the title. */
+  let slugUserEdited = false;
+
+  function wireTitleToSlug(): void {
+    const titleEl = getField<HTMLInputElement>('title');
+    const slugEl = getField<HTMLInputElement>('skill_id');
+    if (titleEl === null || slugEl === null) return;
+
+    titleEl.addEventListener('input', () => {
+      if (!slugUserEdited) {
+        const derived = deriveSlugFromTitle(titleEl.value);
+        setInputValue('skill_id', derived);
+      }
+      scheduleValidation();
+    });
+
+    slugEl.addEventListener('input', () => {
+      slugUserEdited = true;
+      scheduleValidation();
+    });
+
+    // Re-derive on title blur if user cleared the slug.
+    titleEl.addEventListener('blur', () => {
+      if (slugEl.value.trim() === '') {
+        slugUserEdited = false;
+        setInputValue('skill_id', deriveSlugFromTitle(titleEl.value));
+      }
+      // Kick off collision check using whatever the slug currently is.
+      void runCollisionCheck(slugEl.value.trim());
+    });
+
+    slugEl.addEventListener('blur', () => {
+      void runCollisionCheck(slugEl.value.trim());
+    });
+  }
+
+  function wireAllInputs(): void {
+    const form = document.getElementById('submit-skill-form');
+    if (form === null) return;
+    form.addEventListener('input', (ev) => {
+      // Ignore the slug + title — those have their own handlers wired above,
+      // and the title handler already calls scheduleValidation(). Other
+      // inputs flow through this listener.
+      const target = ev.target as HTMLElement | null;
+      if (target === null) return;
+      const id = (target as HTMLInputElement).id;
+      if (id === 'field-title' || id === 'field-skill_id') return;
+      scheduleValidation();
+    });
+    form.addEventListener('change', () => {
+      // <select> doesn't fire 'input' reliably in older Safari — change is
+      // the belt-and-braces hook.
+      scheduleValidation();
+    });
+  }
+
+  // --- Submit handler ----------------------------------------------------
+
+  async function onSubmit(ev: SubmitEvent): Promise<void> {
+    ev.preventDefault();
+    setStatus(null);
+    hideFallback();
+
+    const form = collectForm();
+    const result = validateSkillForm(form);
+    if (!result.ok) {
+      applyValidationToUi(result.issues);
+      updateSubmitButton(result.issues);
+      setStatus('Fix the highlighted fields and try again.', 'error');
+      return;
+    }
+    applyValidationToUi([]);
+
+    const markdown = serializeSkillToMarkdown(form);
+    const { url, fitsInUrl } = buildEditorUrl(form.skill_id, markdown);
+
+    if (fitsInUrl) {
+      window.open(url, '_blank', 'noopener');
+      setStatus(
+        'Opened in new tab — review on GitHub and click "Propose new file" there.',
+      );
+      return;
+    }
+
+    // URL too long: clipboard fallback.
+    try {
+      await copyToClipboard(markdown);
+      showFallback({
+        message:
+          'Your submission is too long for a URL. The markdown is on your clipboard — click "Open GitHub editor" below and paste it into the file body.',
+        slug: form.skill_id,
+        markdown,
+        manual: false,
+      });
+      setStatus('Markdown copied to clipboard.');
+    } catch (err) {
+      if (err instanceof ClipboardUnavailableError) {
+        showFallback({
+          message:
+            'Your submission is too long for a URL, and your browser does not expose the Clipboard API. Copy the markdown manually below, then click "Open GitHub editor" and paste it in.',
+          slug: form.skill_id,
+          markdown,
+          manual: true,
+        });
+        setStatus(
+          'Clipboard API unavailable — copy the markdown manually below.',
+          'error',
+        );
+      } else {
+        const msg = err instanceof Error ? err.message : String(err);
+        setStatus(`Could not copy markdown: ${msg}`, 'error');
+      }
+    }
+  }
+
+  function wireSubmit(): void {
+    const formEl = document.getElementById(
+      'submit-skill-form',
+    ) as HTMLFormElement | null;
+    if (formEl === null) return;
+    formEl.addEventListener('submit', (ev) => {
+      void onSubmit(ev);
+    });
+  }
+
+  function init(): void {
+    wireTitleToSlug();
+    wireAllInputs();
+    wireSubmit();
+    // Initial pass so the submit button reflects the (empty) form's invalid
+    // state on first paint.
+    runValidationNow();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
+  }
+</script>
+</StarlightPage>

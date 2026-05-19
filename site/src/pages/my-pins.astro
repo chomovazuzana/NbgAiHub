@@ -1,0 +1,514 @@
+---
+// site/src/pages/my-pins.astro
+//
+// /my-pins/ — the per-user pinned-items dashboard (F-P11, project-design.md §P.4.4).
+//
+// Server-side render: two static panels (anonymous + signed-in skeleton) plus
+// a loading state. The client `<script>` reads auth state, hydrates the
+// signed-in panel by joining the user's gist favourites with the build-time
+// pin indices (one /_data/<type>-index.json per type, emitted by
+// scripts/build-pin-index.ts), and wires Unpin buttons through gist.ts.
+//
+// No raw fetch calls in this file — all gist + pin-index access is via the
+// shared lib modules.
+
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+
+// F-P11 display order — repeated server-side so SSR markup matches the
+// client-side iteration order.
+const PIN_TYPE_HEADINGS: ReadonlyArray<{
+  type: 'skill' | 'tip' | 'news' | 'journey-step' | 'glossary';
+  label: string;
+}> = [
+  { type: 'skill', label: 'Skills' },
+  { type: 'tip', label: 'Tips & Tricks' },
+  { type: 'news', label: 'News' },
+  { type: 'journey-step', label: 'Journey steps' },
+  { type: 'glossary', label: 'Glossary terms' },
+];
+---
+
+<StarlightPage frontmatter={{ title: 'My Pins' }}>
+  <p>
+    Your personal pinned-items dashboard. Pins live in your own GitHub gist
+    (unlisted) — they are not shared with the team.
+  </p>
+
+  {/* Loading state — visible by default, hidden by the script once auth state
+      is determined. */}
+  <p data-my-pins-loading>Loading your pins…</p>
+
+  {/* Anonymous panel — shown when readToken() returns null. */}
+  <section data-my-pins-anonymous hidden aria-labelledby="my-pins-anon-heading">
+    <h2 id="my-pins-anon-heading">Sign in to see your pins</h2>
+    <p>
+      Pinning is per-user and stored in a private gist on your GitHub account.
+      Sign in to view, add, or remove pins.
+    </p>
+    <button type="button" class="my-pins__signin-btn" data-my-pins-signin>
+      Sign in
+    </button>
+  </section>
+
+  {/* Signed-in panel — populated by the script. The five type sections render
+      in F-P11 order regardless of pin count; empty sections show a small
+      "(none)" placeholder. */}
+  <section data-my-pins-signed-in hidden aria-labelledby="my-pins-signed-in-heading">
+    <h2 id="my-pins-signed-in-heading" class="sr-only">Your pinned items</h2>
+
+    <p data-my-pins-empty hidden class="my-pins__empty">
+      You haven't pinned anything yet. Click the pin button on any news item,
+      tip, skill, glossary term, or journey step to pin it here.
+    </p>
+
+    <p data-my-pins-error hidden class="my-pins__error" role="alert"></p>
+
+    {PIN_TYPE_HEADINGS.map(({ type, label }) => (
+      <section class="my-pins__group" data-pin-group={type}>
+        <h3>{label}</h3>
+        <p data-pin-group-empty={type} class="my-pins__group-empty" hidden>(none)</p>
+        <ul class="my-pins__list" data-pin-list={type}></ul>
+      </section>
+    ))}
+  </section>
+
+  {/* Privacy callout (F-P21). */}
+  <aside class="my-pins__privacy" aria-label="Privacy">
+    <h3>Privacy</h3>
+    <p>
+      Your pins live in your own GitHub gist (unlisted). They're not shared
+      with the team. Clearing your token signs out and removes the
+      <code>gist_id</code> from this browser, but does not delete the gist
+      itself — go to <a
+        href="https://github.com/settings/tokens"
+        target="_blank"
+        rel="noopener noreferrer"
+      >github.com/settings/tokens</a> to revoke access.
+    </p>
+  </aside>
+</StarlightPage>
+
+<style>
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .my-pins__signin-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    border-radius: 0.35rem;
+    border: 1px solid var(--sl-color-accent);
+    background: var(--sl-color-accent);
+    color: var(--sl-color-white);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .my-pins__signin-btn:hover {
+    filter: brightness(1.08);
+  }
+  .my-pins__signin-btn:focus-visible {
+    outline: 2px solid var(--sl-color-accent);
+    outline-offset: 2px;
+  }
+
+  .my-pins__group {
+    margin-top: 1.5rem;
+  }
+  .my-pins__group h3 {
+    margin-bottom: 0.5rem;
+  }
+
+  .my-pins__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .my-pins__list li {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.35rem;
+  }
+
+  .my-pins__list li.my-pins__stale {
+    opacity: 0.55;
+    font-style: italic;
+  }
+
+  .my-pins__list a {
+    color: var(--sl-color-text-accent);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .my-pins__list a:hover {
+    text-decoration: underline;
+  }
+
+  .my-pins__audience {
+    display: inline-block;
+    padding: 0.1rem 0.45rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    background: var(--sl-color-gray-6);
+    color: var(--sl-color-text);
+  }
+  .my-pins__audience--beginner {
+    background: rgba(76, 175, 80, 0.18);
+    color: #4caf50;
+  }
+  .my-pins__audience--advanced {
+    background: rgba(255, 152, 0, 0.18);
+    color: #ff9800;
+  }
+  .my-pins__audience--both {
+    background: rgba(33, 150, 243, 0.18);
+    color: #2196f3;
+  }
+
+  .my-pins__unpin {
+    margin-left: auto;
+    padding: 0.25rem 0.55rem;
+    border-radius: 0.3rem;
+    border: 1px solid var(--sl-color-gray-5);
+    background: transparent;
+    color: var(--sl-color-text);
+    font: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+  .my-pins__unpin:hover {
+    background: var(--sl-color-gray-6);
+  }
+  .my-pins__unpin[disabled] {
+    opacity: 0.6;
+    cursor: progress;
+  }
+
+  .my-pins__empty {
+    padding: 1rem;
+    border: 1px dashed var(--sl-color-gray-5);
+    border-radius: 0.35rem;
+    background: var(--sl-color-gray-6);
+  }
+
+  .my-pins__error {
+    padding: 0.6rem 0.8rem;
+    border-radius: 0.35rem;
+    background: rgba(230, 102, 0, 0.12);
+    color: #e60;
+    border: 1px solid rgba(230, 102, 0, 0.4);
+    margin-bottom: 1rem;
+  }
+
+  .my-pins__group-empty {
+    opacity: 0.65;
+    font-size: 0.9rem;
+    margin: 0;
+  }
+
+  .my-pins__privacy {
+    margin-top: 2.5rem;
+    padding: 1rem 1.2rem;
+    border-left: 4px solid var(--sl-color-accent);
+    background: var(--sl-color-gray-6);
+    border-radius: 0 0.35rem 0.35rem 0;
+  }
+  .my-pins__privacy h3 {
+    margin-top: 0;
+  }
+</style>
+
+<script>
+  import { readToken, subscribe } from '../lib/auth.ts';
+  import { findOrCreateFavoritesGist, removeFavorite } from '../lib/gist.ts';
+  import {
+    fetchAllPinIndices,
+    joinFavoritesWithIndex,
+    groupFavoritesByType,
+    type HydratedPin,
+  } from '../lib/pin-store.ts';
+
+  type PinType = 'skill' | 'tip' | 'news' | 'journey-step' | 'glossary';
+
+  /** Map (type, slug) -> on-site URL for the title link. Best-effort. */
+  function urlForPin(type: PinType, slug: string): string {
+    switch (type) {
+      case 'news':
+        return `/news/${slug}/`;
+      case 'skill':
+        return `/skills/`;
+      case 'tip':
+        return `/tips/`;
+      case 'glossary':
+        return `/glossary#${slug}`;
+      case 'journey-step':
+        return `/start-here/${slug}/`;
+    }
+  }
+
+  function getLoading(): HTMLElement | null {
+    return document.querySelector<HTMLElement>('[data-my-pins-loading]');
+  }
+  function getAnonymous(): HTMLElement | null {
+    return document.querySelector<HTMLElement>('[data-my-pins-anonymous]');
+  }
+  function getSignedIn(): HTMLElement | null {
+    return document.querySelector<HTMLElement>('[data-my-pins-signed-in]');
+  }
+  function getEmpty(): HTMLElement | null {
+    return document.querySelector<HTMLElement>('[data-my-pins-empty]');
+  }
+  function getErrorBox(): HTMLElement | null {
+    return document.querySelector<HTMLElement>('[data-my-pins-error]');
+  }
+
+  function show(el: HTMLElement | null): void {
+    if (el !== null) el.hidden = false;
+  }
+  function hide(el: HTMLElement | null): void {
+    if (el !== null) el.hidden = true;
+  }
+
+  function setError(message: string | null): void {
+    const box = getErrorBox();
+    if (box === null) return;
+    if (message === null) {
+      box.textContent = '';
+      box.hidden = true;
+    } else {
+      box.textContent = message;
+      box.hidden = false;
+    }
+  }
+
+  function clearAllLists(): void {
+    const lists = document.querySelectorAll<HTMLUListElement>('ul[data-pin-list]');
+    lists.forEach((ul) => {
+      ul.replaceChildren();
+    });
+    const placeholders = document.querySelectorAll<HTMLElement>(
+      '[data-pin-group-empty]',
+    );
+    placeholders.forEach((p) => {
+      p.hidden = true;
+    });
+  }
+
+  function readAuthState(): { token: string } | null {
+    try {
+      return readToken();
+    } catch {
+      return null;
+    }
+  }
+
+  function showAnonymousPanel(): void {
+    hide(getLoading());
+    hide(getSignedIn());
+    show(getAnonymous());
+  }
+
+  function showLoadingState(): void {
+    show(getLoading());
+    hide(getAnonymous());
+    hide(getSignedIn());
+  }
+
+  function showSignedInPanel(): void {
+    hide(getLoading());
+    hide(getAnonymous());
+    show(getSignedIn());
+  }
+
+  function audienceLabel(audience: 'beginner' | 'advanced' | 'both'): HTMLSpanElement {
+    const span = document.createElement('span');
+    span.className = `my-pins__audience my-pins__audience--${audience}`;
+    span.textContent = audience;
+    return span;
+  }
+
+  function buildPinListItem(
+    pin: HydratedPin,
+    onUnpin: (pin: HydratedPin, li: HTMLLIElement) => void,
+  ): HTMLLIElement {
+    const li = document.createElement('li');
+    li.dataset.pinSlug = pin.slug;
+    li.dataset.pinType = pin.type;
+
+    if (pin.display !== null) {
+      const a = document.createElement('a');
+      a.href = urlForPin(pin.type as PinType, pin.slug);
+      a.textContent = pin.display.title;
+      li.appendChild(a);
+      li.appendChild(audienceLabel(pin.display.audience));
+    } else {
+      li.classList.add('my-pins__stale');
+      const span = document.createElement('span');
+      span.textContent = `Pinned item no longer available (${pin.type}/${pin.slug})`;
+      li.appendChild(span);
+    }
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'my-pins__unpin';
+    btn.textContent = 'Unpin';
+    btn.setAttribute('aria-label', `Unpin ${pin.display?.title ?? pin.slug}`);
+    btn.addEventListener('click', () => onUnpin(pin, li));
+    li.appendChild(btn);
+
+    return li;
+  }
+
+  async function renderSignedIn(token: string): Promise<void> {
+    showLoadingState();
+    setError(null);
+    clearAllLists();
+    hide(getEmpty());
+
+    let gistId: string;
+    let favourites: HydratedPin[] = [];
+    try {
+      const gistResult = await findOrCreateFavoritesGist(token);
+      gistId = gistResult.gistId;
+      const indices = await fetchAllPinIndices();
+      favourites = joinFavoritesWithIndex(gistResult.document.favourites, indices);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      // Show the signed-in panel with whatever loaded (likely nothing) plus
+      // an inline error. Per spec, we keep the panel visible on fetch failure.
+      showSignedInPanel();
+      setError(`Could not load your pins: ${msg}`);
+      show(getEmpty());
+      return;
+    }
+
+    const grouped = groupFavoritesByType(favourites);
+
+    if (favourites.length === 0) {
+      showSignedInPanel();
+      show(getEmpty());
+      return;
+    }
+
+    const onUnpin = async (pin: HydratedPin, li: HTMLLIElement): Promise<void> => {
+      const btn = li.querySelector<HTMLButtonElement>('.my-pins__unpin');
+      // Snapshot for revert on failure.
+      const parent = li.parentElement;
+      const nextSibling = li.nextSibling;
+      if (btn !== null) btn.disabled = true;
+      // Optimistic removal.
+      li.remove();
+      // If the type group now has zero items, show the (none) placeholder.
+      maybeMarkGroupEmpty(pin.type as PinType);
+      try {
+        await removeFavorite(token, gistId, { type: pin.type, slug: pin.slug });
+        // Check the whole-page empty state.
+        const anyLeft = document.querySelector<HTMLLIElement>(
+          'ul[data-pin-list] > li',
+        );
+        if (anyLeft === null) {
+          show(getEmpty());
+        }
+      } catch (err) {
+        // Revert.
+        if (parent !== null) {
+          parent.insertBefore(li, nextSibling);
+        }
+        // Group is no longer empty — hide placeholder.
+        maybeMarkGroupEmpty(pin.type as PinType);
+        if (btn !== null) btn.disabled = false;
+        const msg = err instanceof Error ? err.message : String(err);
+        setError(`Could not unpin: ${msg}`);
+      }
+    };
+
+    for (const type of [
+      'skill',
+      'tip',
+      'news',
+      'journey-step',
+      'glossary',
+    ] as const) {
+      const ul = document.querySelector<HTMLUListElement>(
+        `ul[data-pin-list="${type}"]`,
+      );
+      if (ul === null) continue;
+      const pins = grouped[type];
+      if (pins.length === 0) {
+        const placeholder = document.querySelector<HTMLElement>(
+          `[data-pin-group-empty="${type}"]`,
+        );
+        if (placeholder !== null) placeholder.hidden = false;
+        continue;
+      }
+      for (const pin of pins) {
+        ul.appendChild(buildPinListItem(pin, onUnpin));
+      }
+    }
+
+    showSignedInPanel();
+  }
+
+  function maybeMarkGroupEmpty(type: PinType): void {
+    const ul = document.querySelector<HTMLUListElement>(
+      `ul[data-pin-list="${type}"]`,
+    );
+    const placeholder = document.querySelector<HTMLElement>(
+      `[data-pin-group-empty="${type}"]`,
+    );
+    if (ul === null || placeholder === null) return;
+    placeholder.hidden = ul.children.length !== 0;
+  }
+
+  function wireSignInButton(): void {
+    const btn = document.querySelector<HTMLButtonElement>('[data-my-pins-signin]');
+    if (btn === null) return;
+    btn.addEventListener('click', () => {
+      document.dispatchEvent(new CustomEvent('nbgaihub:open-signin-modal'));
+    });
+  }
+
+  async function render(): Promise<void> {
+    const state = readAuthState();
+    if (state === null) {
+      showAnonymousPanel();
+      return;
+    }
+    await renderSignedIn(state.token);
+  }
+
+  function init(): void {
+    wireSignInButton();
+    void render();
+
+    subscribe((authState) => {
+      if (authState === 'signed-out') {
+        showAnonymousPanel();
+      } else {
+        void render();
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
+  }
+</script>

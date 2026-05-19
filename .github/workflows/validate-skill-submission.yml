@@ -1,0 +1,75 @@
+name: validate-skill-submission
+
+# Validates skill markdown submissions in PRs. Triggers when any *.md file
+# under skills/ is added or changed. Uses pull_request (NOT pull_request_target)
+# per investigation R7 — fork PR code does NOT execute with repo secrets.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'skills/**/*.md'
+
+# Read-only — the validator never writes to the repo. Posts results as
+# GitHub Actions annotations (::error file=...,line=1::...) which appear
+# inline on the PR diff via the default check-run UI.
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-skill-submission-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          # Need full history so we can diff against the base.
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: pipeline/.nvmrc
+          cache: npm
+          cache-dependency-path: pipeline/package-lock.json
+
+      - name: Install pipeline dependencies
+        working-directory: pipeline
+        run: npm ci
+
+      - name: Build pipeline (compile TypeScript)
+        working-directory: pipeline
+        run: npm run build
+
+      - name: Compute changed skill files
+        id: changed
+        run: |
+          set -euo pipefail
+          base_sha="${{ github.event.pull_request.base.sha }}"
+          head_sha="${{ github.sha }}"
+          # Only added or modified .md files under skills/. Deletions are skipped.
+          files=$(git diff --name-only --diff-filter=AM "$base_sha" "$head_sha" -- 'skills/*.md' 'skills/**/*.md' || true)
+          if [ -z "$files" ]; then
+            echo "No skill files changed in this PR."
+            echo "files=" >> "$GITHUB_OUTPUT"
+          else
+            # Newline-separated → space-separated for argv. Filenames cannot
+            # contain spaces in practice (slugs are kebab-case).
+            joined=$(echo "$files" | tr '\n' ' ')
+            echo "Changed skill files: $joined"
+            echo "files=$joined" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run validator
+        if: steps.changed.outputs.files != ''
+        run: |
+          set -euo pipefail
+          # Run from repo root so the validator reads config/maintainers.json
+          # via its default cwd-relative path.
+          node pipeline/dist/validators/cli.js ${{ steps.changed.outputs.files }}

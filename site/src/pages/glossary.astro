@@ -1,6 +1,7 @@
 ---
 import { getCollection, render } from 'astro:content';
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import PinButton from '../components/PinButton.astro';
 
 const items = await getCollection('glossary');
 const sorted = items.sort((a, b) => a.data.title.localeCompare(b.data.title));
@@ -37,6 +38,7 @@ const rendered = await Promise.all(
       {rendered.map(({ entry, Content }) => (
         <section id={entry.id} class="glossary-term">
           <h2 id={entry.id}>{entry.data.title}</h2>
+          <PinButton type="glossary" slug={entry.id} />
           <Content />
         </section>
       ))}

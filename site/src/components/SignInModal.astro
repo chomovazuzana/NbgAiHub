@@ -1,0 +1,335 @@
+---
+// site/src/components/SignInModal.astro
+//
+// Global sign-in dialog. Single instance is mounted by SocialIconsOverride.astro
+// so it ships with the header on every page. Opens in response to a
+// `nbgaihub:open-signin-modal` custom event dispatched by the sign-in button.
+//
+// The PAT enters here only — we hand it to `auth.signIn(token)` which delegates
+// validation + storage to the auth module. On `TokenInvalidError` we show the
+// inline error; on other errors we show a generic network message. We never
+// store, log, or echo the token from this component.
+//
+// A24: the deep-link to GitHub's token-create page uses target="_blank" with
+// rel="noopener noreferrer".
+---
+
+<dialog
+  class="nbg-signin"
+  data-nbg-signin-dialog
+  aria-labelledby="nbg-signin-title"
+>
+  <form method="dialog" class="nbg-signin__form" data-nbg-signin-form novalidate>
+    <button
+      type="button"
+      class="nbg-signin__close"
+      data-nbg-signin-close
+      aria-label="Close"
+    >
+      &times;
+    </button>
+
+    <h2 id="nbg-signin-title" class="nbg-signin__title">Sign in to pin items</h2>
+
+    <p class="nbg-signin__explainer">
+      To pin pages and skills across devices, paste a GitHub Personal Access
+      Token with the <code>gist</code> scope. The token is stored only in this
+      browser's <code>localStorage</code> and is sent only to
+      <code>api.github.com</code>.
+    </p>
+
+    <a
+      class="nbg-signin__deeplink"
+      href="https://github.com/settings/tokens/new?scopes=gist&description=NbgAiHub"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Create a token on GitHub &rarr;
+    </a>
+
+    <label class="nbg-signin__label" for="nbg-signin-token">
+      Personal Access Token
+    </label>
+    <input
+      id="nbg-signin-token"
+      class="nbg-signin__input"
+      data-nbg-signin-input
+      type="password"
+      autocomplete="off"
+      spellcheck="false"
+      placeholder="ghp_..."
+      required
+    />
+
+    <p class="nbg-signin__error" data-nbg-signin-error role="alert" hidden></p>
+
+    <div class="nbg-signin__actions">
+      <button
+        type="button"
+        class="nbg-signin__btn nbg-signin__btn--secondary"
+        data-nbg-signin-cancel
+      >
+        Cancel
+      </button>
+      <button
+        type="submit"
+        class="nbg-signin__btn nbg-signin__btn--primary"
+        data-nbg-signin-submit
+      >
+        Validate &amp; sign in
+      </button>
+    </div>
+  </form>
+</dialog>
+
+<style>
+  .nbg-signin {
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.6rem;
+    padding: 0;
+    background: var(--sl-color-bg);
+    color: var(--sl-color-text);
+    max-width: 32rem;
+    width: calc(100% - 2rem);
+  }
+  .nbg-signin::backdrop {
+    background: rgba(0, 0, 0, 0.55);
+  }
+
+  .nbg-signin__form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1.5rem 1.5rem 1.25rem;
+    position: relative;
+  }
+
+  .nbg-signin__close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.6rem;
+    background: transparent;
+    border: 0;
+    color: var(--sl-color-text);
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0.25rem 0.4rem;
+    border-radius: 0.25rem;
+  }
+  .nbg-signin__close:hover {
+    background: var(--sl-color-gray-6);
+  }
+  .nbg-signin__close:focus-visible {
+    outline: 2px solid var(--sl-color-accent);
+    outline-offset: 2px;
+  }
+
+  .nbg-signin__title {
+    margin: 0;
+    font-size: 1.2rem;
+    line-height: 1.2;
+  }
+
+  .nbg-signin__explainer {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    opacity: 0.9;
+  }
+  .nbg-signin__explainer code {
+    background: var(--sl-color-gray-6);
+    padding: 0 0.25rem;
+    border-radius: 0.2rem;
+    font-size: 0.85em;
+  }
+
+  .nbg-signin__deeplink {
+    align-self: flex-start;
+    color: var(--sl-color-text-accent);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  .nbg-signin__deeplink:hover {
+    text-decoration: underline;
+  }
+
+  .nbg-signin__label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 0.25rem;
+  }
+
+  .nbg-signin__input {
+    width: 100%;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.35rem;
+    background: var(--sl-color-bg);
+    color: var(--sl-color-text);
+    font: inherit;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.9rem;
+  }
+  .nbg-signin__input:focus-visible {
+    outline: 2px solid var(--sl-color-accent);
+    outline-offset: 1px;
+  }
+
+  .nbg-signin__error {
+    margin: 0;
+    padding: 0.5rem 0.7rem;
+    border-radius: 0.35rem;
+    background: rgba(230, 102, 0, 0.12);
+    color: #e60;
+    font-size: 0.85rem;
+    border: 1px solid rgba(230, 102, 0, 0.4);
+  }
+
+  .nbg-signin__actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+  }
+
+  .nbg-signin__btn {
+    padding: 0.55rem 1rem;
+    border-radius: 0.35rem;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--sl-color-gray-5);
+  }
+  .nbg-signin__btn:focus-visible {
+    outline: 2px solid var(--sl-color-accent);
+    outline-offset: 2px;
+  }
+  .nbg-signin__btn--primary {
+    background: var(--sl-color-accent);
+    color: var(--sl-color-white);
+    border-color: var(--sl-color-accent);
+  }
+  .nbg-signin__btn--primary:disabled {
+    opacity: 0.6;
+    cursor: progress;
+  }
+  .nbg-signin__btn--secondary {
+    background: transparent;
+    color: var(--sl-color-text);
+  }
+</style>
+
+<script>
+  // Bundled by Vite as a client module — import from the auth lib works here.
+  import { signIn } from '../lib/auth.ts';
+  import { TokenInvalidError } from '../lib/api-fetch.ts';
+
+  type Refs = {
+    dialog: HTMLDialogElement;
+    form: HTMLFormElement;
+    input: HTMLInputElement;
+    error: HTMLElement;
+    submit: HTMLButtonElement;
+    closeBtn: HTMLButtonElement;
+    cancelBtn: HTMLButtonElement;
+  };
+
+  function collect(): Refs | null {
+    const dialog = document.querySelector<HTMLDialogElement>('[data-nbg-signin-dialog]');
+    const form = document.querySelector<HTMLFormElement>('[data-nbg-signin-form]');
+    const input = document.querySelector<HTMLInputElement>('[data-nbg-signin-input]');
+    const error = document.querySelector<HTMLElement>('[data-nbg-signin-error]');
+    const submit = document.querySelector<HTMLButtonElement>('[data-nbg-signin-submit]');
+    const closeBtn = document.querySelector<HTMLButtonElement>('[data-nbg-signin-close]');
+    const cancelBtn = document.querySelector<HTMLButtonElement>('[data-nbg-signin-cancel]');
+    if (!dialog || !form || !input || !error || !submit || !closeBtn || !cancelBtn) {
+      return null;
+    }
+    return { dialog, form, input, error, submit, closeBtn, cancelBtn };
+  }
+
+  function showError(refs: Refs, msg: string): void {
+    refs.error.textContent = msg;
+    refs.error.hidden = false;
+  }
+
+  function clearError(refs: Refs): void {
+    refs.error.textContent = '';
+    refs.error.hidden = true;
+  }
+
+  function close(refs: Refs): void {
+    if (refs.dialog.open) refs.dialog.close();
+    refs.input.value = '';
+    clearError(refs);
+    refs.submit.disabled = false;
+  }
+
+  function open(refs: Refs): void {
+    clearError(refs);
+    refs.input.value = '';
+    refs.submit.disabled = false;
+    // Native <dialog> handles focus + Esc-to-close on showModal().
+    if (typeof refs.dialog.showModal === 'function') {
+      refs.dialog.showModal();
+    } else {
+      // Old browser fallback — just toggle the `open` attribute.
+      refs.dialog.setAttribute('open', '');
+    }
+    // Defer focus until after the dialog is on-screen.
+    queueMicrotask(() => refs.input.focus());
+  }
+
+  async function onSubmit(refs: Refs, event: Event): Promise<void> {
+    event.preventDefault();
+    clearError(refs);
+    const token = refs.input.value.trim();
+    if (token === '') {
+      showError(refs, 'Please paste your token.');
+      return;
+    }
+    refs.submit.disabled = true;
+    try {
+      await signIn(token);
+      close(refs);
+      // Subscribers (e.g. SocialIconsOverride) re-render via auth.subscribe();
+      // reload still helps any per-page personalization that doesn't subscribe.
+      window.location.reload();
+    } catch (err) {
+      refs.submit.disabled = false;
+      if (err instanceof TokenInvalidError) {
+        showError(refs, 'Invalid token. Check the value and the `gist` scope.');
+      } else {
+        const msg = err instanceof Error ? err.message : String(err);
+        showError(refs, `Network error: ${msg}`);
+      }
+    }
+  }
+
+  function init(): void {
+    const refs = collect();
+    if (!refs) return;
+
+    document.addEventListener('nbgaihub:open-signin-modal', () => open(refs));
+
+    refs.form.addEventListener('submit', (e) => {
+      void onSubmit(refs, e);
+    });
+
+    refs.closeBtn.addEventListener('click', () => close(refs));
+    refs.cancelBtn.addEventListener('click', () => close(refs));
+
+    // Clicking on the backdrop closes the dialog.
+    refs.dialog.addEventListener('click', (event) => {
+      if (event.target === refs.dialog) close(refs);
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
+  }
+</script>

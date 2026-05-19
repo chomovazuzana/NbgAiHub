@@ -4,6 +4,7 @@
 
 import type { CollectionEntry } from 'astro:content';
 import AudienceBadge from './AudienceBadge.astro';
+import PinButton from './PinButton.astro';
 
 interface Props {
   entry: CollectionEntry<'skills'>;
@@ -25,6 +26,7 @@ const { data } = entry;
       data.title
     )}
   </h3>
+  <PinButton type="skill" slug={entry.id} />
   <div class="news-card__meta">
     <AudienceBadge audience={data.audience} />
   </div>

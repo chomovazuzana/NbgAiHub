@@ -16,8 +16,14 @@ export default defineConfig({
       title: 'NbgAiHub',
       description: 'A field manual for newcomers to Claude Code.',
       customCss: ['./src/styles/custom.css'],
+      components: {
+        // R6: override Starlight's SocialIcons slot (not the whole Header) to
+        // host the sign-in affordance + signed-in chip + global SignInModal.
+        SocialIcons: './src/components/SocialIconsOverride.astro',
+      },
       sidebar: [
         { label: 'Home', link: '/' },
+        { label: 'My Pins', link: '/my-pins/' },
         {
           label: 'Start Here',
           collapsed: false,
@@ -31,7 +37,14 @@ export default defineConfig({
         { label: 'Tips & Tricks', link: '/tips/' },
         { label: 'Glossary', link: '/glossary/' },
         { label: 'Reference', link: '/reference/' },
-        { label: 'Contribute', link: '/contribute/' },
+        {
+          label: 'Contribute',
+          collapsed: false,
+          items: [
+            { label: 'How to contribute', link: '/contribute/' },
+            { label: 'Submit a Skill', link: '/submit-skill/' },
+          ],
+        },
       ],
     }),
   ],

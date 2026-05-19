@@ -3,6 +3,7 @@ import { getCollection } from 'astro:content';
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 import AudienceBadge from '../components/AudienceBadge.astro';
 import AudienceFilter from '../components/AudienceFilter.astro';
+import PinButton from '../components/PinButton.astro';
 
 const items = await getCollection('tips');
 ---
@@ -28,6 +29,7 @@ const items = await getCollection('tips');
             data-topics={entry.data.topics.join(',')}
           >
             <h3>{entry.data.title}</h3>
+            <PinButton type="tip" slug={entry.id} />
             <div class="news-card__meta">
               <AudienceBadge audience={entry.data.audience} />
             </div>
