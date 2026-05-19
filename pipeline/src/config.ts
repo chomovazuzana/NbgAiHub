@@ -93,7 +93,18 @@ export async function loadConfig(
       );
     }
 
-    out.push({ name, url, enabled });
+    // Variant C (DECISIONS 2026-05-19): per-feed auto-promote flag. No
+    // fallback — missing or non-boolean is a schema error. Forces every feed
+    // author to make the policy call explicitly.
+    const autoPromoteEligible = obj["auto_promote_eligible"];
+    if (typeof autoPromoteEligible !== "boolean") {
+      throw new ConfigSchemaError(
+        `rss-sources.json[${i}].auto_promote_eligible`,
+        "must be boolean",
+      );
+    }
+
+    out.push({ name, url, enabled, auto_promote_eligible: autoPromoteEligible });
   }
 
   return out;

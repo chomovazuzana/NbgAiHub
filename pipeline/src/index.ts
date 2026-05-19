@@ -30,6 +30,7 @@ import { resolveSlugCollision, slugify } from "./slug.js";
 import { triageItem, MalformedTriageResponseError } from "./triage.js";
 import { writeNewsItem } from "./write.js";
 import { buildPrBody, setStepOutput, writePrBodyFile } from "./pr.js";
+import { buildFeedMap, shouldAutoPromote } from "./auto-promote.js";
 import { makeAzureClient } from "./azure-client.js";
 import { readEnv } from "./env.js";
 import { makeLogger, type Logger } from "./logger.js";
@@ -93,6 +94,9 @@ export async function run(options: RunOptions = {}): Promise<RunResult> {
   if (enabled.length === 0) {
     logger.error("no_enabled_feeds", { configuredCount: allSources.length });
     await setStepOutput("new_items", "false", process.env, fs);
+    await setStepOutput("auto_promote_count", "0", process.env, fs);
+    await setStepOutput("review_count", "0", process.env, fs);
+    await setStepOutput("mode", "empty", process.env, fs);
     return {
       feedsAttempted: 0,
       feedsFailed: [],
@@ -100,6 +104,8 @@ export async function run(options: RunOptions = {}): Promise<RunResult> {
       itemsDeduped: 0,
       itemsJudgedIrrelevant: 0,
       itemsWritten: [],
+      autoPromoted: [],
+      reviewNeeded: [],
       exitCode: 1,
     };
   }
@@ -153,6 +159,9 @@ export async function run(options: RunOptions = {}): Promise<RunResult> {
   if (successes.length === 0 && failures.length > 0) {
     logger.error("all_feeds_failed", { count: failures.length });
     await setStepOutput("new_items", "false", process.env, fs);
+    await setStepOutput("auto_promote_count", "0", process.env, fs);
+    await setStepOutput("review_count", "0", process.env, fs);
+    await setStepOutput("mode", "empty", process.env, fs);
     throw new AllFeedsFailedError(failures);
   }
 
@@ -190,9 +199,15 @@ export async function run(options: RunOptions = {}): Promise<RunResult> {
   }
 
   // Triage each candidate, write each relevant one.
+  // Variant C (DECISIONS 2026-05-19): partition writes between `incoming/`
+  // (editorial review) and `published/` (auto-promote — high confidence +
+  // professional source). `feedMap` is the policy lookup.
+  const feedMap = buildFeedMap(allSources);
   let itemsJudgedIrrelevant = 0;
   const takenSlugs = new Set<string>();
   const written: EmittedItem[] = [];
+  const autoPromoted: EmittedItem[] = [];
+  const reviewNeeded: EmittedItem[] = [];
 
   for (const c of candidates) {
     let triageResult: TriageResult | null;
@@ -231,11 +246,21 @@ export async function run(options: RunOptions = {}): Promise<RunResult> {
       filename,
     };
 
+    const destination: "incoming" | "published" = shouldAutoPromote(
+      emitted,
+      feedMap,
+    )
+      ? "published"
+      : "incoming";
+
     try {
-      await writeNewsItem(emitted, newsRoot, fs);
+      await writeNewsItem(emitted, newsRoot, destination, fs);
     } catch (err) {
       logger.error("write_failed", { filename, reason: String(err) });
       await setStepOutput("new_items", "false", process.env, fs);
+      await setStepOutput("auto_promote_count", String(autoPromoted.length), process.env, fs);
+      await setStepOutput("review_count", String(reviewNeeded.length), process.env, fs);
+      await setStepOutput("mode", "empty", process.env, fs);
       return {
         feedsAttempted: enabled.length,
         feedsFailed: failures,
@@ -243,31 +268,64 @@ export async function run(options: RunOptions = {}): Promise<RunResult> {
         itemsDeduped,
         itemsJudgedIrrelevant,
         itemsWritten: written,
+        autoPromoted,
+        reviewNeeded,
         exitCode: 1,
       };
     }
 
     written.push(emitted);
+    if (destination === "published") {
+      autoPromoted.push(emitted);
+    } else {
+      reviewNeeded.push(emitted);
+    }
   }
 
   logger.info("items_judged_irrelevant", { count: itemsJudgedIrrelevant });
   logger.info("items_written", {
     count: written.length,
+    autoPromoted: autoPromoted.length,
+    reviewNeeded: reviewNeeded.length,
     filenames: written.map((w) => w.filename),
   });
 
   // 6. PR signaling.
+  // Variant C three-mode contract (DECISIONS 2026-05-19):
+  //  - auto_only:   review==0, auto>0  → workflow commits directly to main
+  //  - mixed:       review>0,  auto>0  → workflow opens editorial PR
+  //  - review_only: review>0,  auto==0 → workflow opens editorial PR (current flow)
+  //  - empty:       both 0             → no-op
+  const autoCount = autoPromoted.length;
+  const reviewCount = reviewNeeded.length;
+  let mode: "auto_only" | "mixed" | "review_only" | "empty";
+  if (autoCount === 0 && reviewCount === 0) {
+    mode = "empty";
+  } else if (reviewCount === 0) {
+    mode = "auto_only";
+  } else if (autoCount === 0) {
+    mode = "review_only";
+  } else {
+    mode = "mixed";
+  }
+
+  // PR body is only needed when the workflow will open a PR (mixed or
+  // review_only). For auto_only the body is unused; we still emit it for
+  // visibility in case the workflow logs it.
   if (written.length > 0) {
-    const body = buildPrBody(written, runDateUtc);
+    const body = buildPrBody(autoPromoted, reviewNeeded, runDateUtc);
     await writePrBodyFile(body, pipelineDir, fs);
     await setStepOutput("new_items", "true", process.env, fs);
   } else {
     logger.info("no_new_items", { message: "no new items, skipping PR" });
     await setStepOutput("new_items", "false", process.env, fs);
   }
+  await setStepOutput("auto_promote_count", String(autoCount), process.env, fs);
+  await setStepOutput("review_count", String(reviewCount), process.env, fs);
+  await setStepOutput("mode", mode, process.env, fs);
 
   const durationMs = Date.now() - startMs;
-  logger.info("pipeline_end", { exitCode: 0, durationMs });
+  logger.info("pipeline_end", { exitCode: 0, durationMs, mode });
 
   return {
     feedsAttempted: enabled.length,
@@ -276,6 +334,8 @@ export async function run(options: RunOptions = {}): Promise<RunResult> {
     itemsDeduped,
     itemsJudgedIrrelevant,
     itemsWritten: written,
+    autoPromoted,
+    reviewNeeded,
     exitCode: 0,
   };
 }

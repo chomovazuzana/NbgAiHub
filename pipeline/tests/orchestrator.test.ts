@@ -80,8 +80,8 @@ describe("orchestrator.run", () => {
   it("continues after individual feed failure (AC6)", async () => {
     const memFsObj = memFs({
       "/repo/config/rss-sources.json": JSON.stringify([
-        { name: "Good", url: "https://good.example/feed.xml", enabled: true },
-        { name: "Bad", url: "https://bad.example/feed.xml", enabled: true },
+        { name: "Good", url: "https://good.example/feed.xml", enabled: true, auto_promote_eligible: false },
+        { name: "Bad", url: "https://bad.example/feed.xml", enabled: true, auto_promote_eligible: false },
       ]),
     });
     const fetchImpl = vi.fn(async (url: string) => {
@@ -118,8 +118,8 @@ describe("orchestrator.run", () => {
   it("exits non-zero (and throws AllFeedsFailedError) when all feeds fail", async () => {
     const memFsObj = memFs({
       "/repo/config/rss-sources.json": JSON.stringify([
-        { name: "Bad1", url: "https://bad1.example/feed.xml", enabled: true },
-        { name: "Bad2", url: "https://bad2.example/feed.xml", enabled: true },
+        { name: "Bad1", url: "https://bad1.example/feed.xml", enabled: true, auto_promote_eligible: false },
+        { name: "Bad2", url: "https://bad2.example/feed.xml", enabled: true, auto_promote_eligible: false },
       ]),
     });
     const fetchImpl = vi.fn(async () => new Response("err", { status: 500 }));
@@ -144,7 +144,7 @@ describe("orchestrator.run", () => {
   it("exits non-zero with empty config (no enabled feeds)", async () => {
     const memFsObj = memFs({
       "/repo/config/rss-sources.json": JSON.stringify([
-        { name: "X", url: "https://x.example/feed.xml", enabled: false },
+        { name: "X", url: "https://x.example/feed.xml", enabled: false, auto_promote_eligible: false },
       ]),
     });
     const { client } = makeMockClient({});
@@ -167,7 +167,7 @@ describe("orchestrator.run", () => {
   it("empty-run produces no commits and sets new_items=false", async () => {
     const memFsObj = memFs({
       "/repo/config/rss-sources.json": JSON.stringify([
-        { name: "Good", url: "https://good.example/feed.xml", enabled: true },
+        { name: "Good", url: "https://good.example/feed.xml", enabled: true, auto_promote_eligible: false },
       ]),
       "/runner/output": "",
     });
@@ -196,9 +196,14 @@ describe("orchestrator.run", () => {
       });
       expect(result.exitCode).toBe(0);
       expect(result.itemsWritten.length).toBe(0);
+      expect(result.autoPromoted.length).toBe(0);
+      expect(result.reviewNeeded.length).toBe(0);
 
       const output = String(await memFsObj.readFile("/runner/output", "utf8"));
       expect(output).toContain("new_items=false");
+      expect(output).toContain("auto_promote_count=0");
+      expect(output).toContain("review_count=0");
+      expect(output).toContain("mode=empty");
     } finally {
       if (prevOutput === undefined) {
         delete process.env.GITHUB_OUTPUT;
@@ -226,7 +231,7 @@ describe("orchestrator.run", () => {
 
     const memFsObj = memFs({
       "/repo/config/rss-sources.json": JSON.stringify([
-        { name: "Good", url: "https://good.example/feed.xml", enabled: true },
+        { name: "Good", url: "https://good.example/feed.xml", enabled: true, auto_promote_eligible: false },
       ]),
       "/repo/news/incoming/2026-05-17-old.md": seenMd,
     });
@@ -260,8 +265,8 @@ describe("orchestrator.run", () => {
   it("emits NF6 log lines for feeds attempted, feeds failed, items fetched, items deduped, items written", async () => {
     const memFsObj = memFs({
       "/repo/config/rss-sources.json": JSON.stringify([
-        { name: "Good", url: "https://good.example/feed.xml", enabled: true },
-        { name: "Bad", url: "https://bad.example/feed.xml", enabled: true },
+        { name: "Good", url: "https://good.example/feed.xml", enabled: true, auto_promote_eligible: false },
+        { name: "Bad", url: "https://bad.example/feed.xml", enabled: true, auto_promote_eligible: false },
       ]),
     });
     const fetchImpl = vi.fn(async (url: string) => {
@@ -294,7 +299,7 @@ describe("orchestrator.run", () => {
   it("writes pr-body.md when at least one item is emitted", async () => {
     const memFsObj = memFs({
       "/repo/config/rss-sources.json": JSON.stringify([
-        { name: "Good", url: "https://good.example/feed.xml", enabled: true },
+        { name: "Good", url: "https://good.example/feed.xml", enabled: true, auto_promote_eligible: false },
       ]),
     });
     const fetchImpl = vi.fn(async () => new Response(atom, { status: 200 }));
@@ -316,5 +321,155 @@ describe("orchestrator.run", () => {
     expect(result.itemsWritten.length).toBeGreaterThan(0);
     const body = String(await memFsObj.readFile("/repo/pipeline/pr-body.md", "utf8"));
     expect(body).toContain("News triage 2026-05-18");
+  });
+
+  // Variant C — DECISIONS 2026-05-19.
+  it("auto-promotes high-confidence items from eligible feeds to news/published/", async () => {
+    const memFsObj = memFs({
+      "/repo/config/rss-sources.json": JSON.stringify([
+        { name: "Good", url: "https://good.example/feed.xml", enabled: true, auto_promote_eligible: true },
+      ]),
+      "/runner/output": "",
+    });
+    // Both items rated high confidence → both go to published/.
+    const fetchImpl = vi.fn(async () => new Response(rss20, { status: 200 }));
+    const { client } = makeMockClient({});
+    const { logger } = captureLogger();
+
+    const prevOutput = process.env.GITHUB_OUTPUT;
+    process.env.GITHUB_OUTPUT = "/runner/output";
+
+    try {
+      const result = await run({
+        repoRoot: "/repo",
+        configPath: "/repo/config/rss-sources.json",
+        newsRoot: "/repo/news",
+        pipelineDir: "/repo/pipeline",
+        now: () => new Date("2026-05-19T06:00:00Z"),
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+        fs: memFsObj,
+        makeClient: () => client,
+        logger,
+      });
+      expect(result.exitCode).toBe(0);
+      expect(result.autoPromoted.length).toBeGreaterThan(0);
+      expect(result.reviewNeeded.length).toBe(0);
+      expect(result.itemsWritten.length).toBe(result.autoPromoted.length);
+
+      // Files physically present under news/published/.
+      for (const e of result.autoPromoted) {
+        const stat = await memFsObj.stat(`/repo/news/published/${e.filename}`);
+        expect(stat.isFile()).toBe(true);
+      }
+
+      const output = String(await memFsObj.readFile("/runner/output", "utf8"));
+      expect(output).toContain("new_items=true");
+      expect(output).toContain("mode=auto_only");
+      expect(output).toContain(`auto_promote_count=${result.autoPromoted.length}`);
+      expect(output).toContain("review_count=0");
+    } finally {
+      if (prevOutput === undefined) {
+        delete process.env.GITHUB_OUTPUT;
+      } else {
+        process.env.GITHUB_OUTPUT = prevOutput;
+      }
+    }
+  });
+
+  it("routes high-confidence items from INELIGIBLE feeds to news/incoming/", async () => {
+    const memFsObj = memFs({
+      "/repo/config/rss-sources.json": JSON.stringify([
+        { name: "Good", url: "https://good.example/feed.xml", enabled: true, auto_promote_eligible: false },
+      ]),
+      "/runner/output": "",
+    });
+    const fetchImpl = vi.fn(async () => new Response(rss20, { status: 200 }));
+    const { client } = makeMockClient({});
+    const { logger } = captureLogger();
+
+    const prevOutput = process.env.GITHUB_OUTPUT;
+    process.env.GITHUB_OUTPUT = "/runner/output";
+
+    try {
+      const result = await run({
+        repoRoot: "/repo",
+        configPath: "/repo/config/rss-sources.json",
+        newsRoot: "/repo/news",
+        pipelineDir: "/repo/pipeline",
+        now: () => new Date("2026-05-19T06:00:00Z"),
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+        fs: memFsObj,
+        makeClient: () => client,
+        logger,
+      });
+      expect(result.autoPromoted.length).toBe(0);
+      expect(result.reviewNeeded.length).toBeGreaterThan(0);
+      for (const e of result.reviewNeeded) {
+        const stat = await memFsObj.stat(`/repo/news/incoming/${e.filename}`);
+        expect(stat.isFile()).toBe(true);
+      }
+      const output = String(await memFsObj.readFile("/runner/output", "utf8"));
+      expect(output).toContain("mode=review_only");
+    } finally {
+      if (prevOutput === undefined) {
+        delete process.env.GITHUB_OUTPUT;
+      } else {
+        process.env.GITHUB_OUTPUT = prevOutput;
+      }
+    }
+  });
+
+  it("mixed mode: routes high-eligible to published/, medium-eligible to incoming/", async () => {
+    const memFsObj = memFs({
+      "/repo/config/rss-sources.json": JSON.stringify([
+        { name: "Good", url: "https://good.example/feed.xml", enabled: true, auto_promote_eligible: true },
+      ]),
+      "/runner/output": "",
+    });
+    const fetchImpl = vi.fn(async () => new Response(rss20, { status: 200 }));
+    // First item high-confidence (auto-promote); second item medium (review).
+    const { client } = makeMockClient({
+      "Claude 4 launches":
+        '{"relevant":true,"audience":"both","topics":["news"],"summary":"S1. S2.","editor_confidence":"high"}',
+      "Constitutional AI 2.0 paper released":
+        '{"relevant":true,"audience":"both","topics":["research"],"summary":"S1. S2.","editor_confidence":"medium"}',
+    });
+    const { logger } = captureLogger();
+
+    const prevOutput = process.env.GITHUB_OUTPUT;
+    process.env.GITHUB_OUTPUT = "/runner/output";
+
+    try {
+      const result = await run({
+        repoRoot: "/repo",
+        configPath: "/repo/config/rss-sources.json",
+        newsRoot: "/repo/news",
+        pipelineDir: "/repo/pipeline",
+        now: () => new Date("2026-05-19T06:00:00Z"),
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+        fs: memFsObj,
+        makeClient: () => client,
+        logger,
+      });
+      expect(result.autoPromoted.length).toBe(1);
+      expect(result.reviewNeeded.length).toBe(1);
+      expect(result.itemsWritten.length).toBe(2);
+
+      const output = String(await memFsObj.readFile("/runner/output", "utf8"));
+      expect(output).toContain("mode=mixed");
+      expect(output).toContain("auto_promote_count=1");
+      expect(output).toContain("review_count=1");
+
+      // PR body shows both sections.
+      const body = String(await memFsObj.readFile("/repo/pipeline/pr-body.md", "utf8"));
+      expect(body).toContain("## Auto-promoted");
+      expect(body).toContain("## For review");
+    } finally {
+      if (prevOutput === undefined) {
+        delete process.env.GITHUB_OUTPUT;
+      } else {
+        process.env.GITHUB_OUTPUT = prevOutput;
+      }
+    }
   });
 });

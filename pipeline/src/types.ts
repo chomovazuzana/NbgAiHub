@@ -5,11 +5,19 @@
 /**
  * One feed entry as it appears in config/rss-sources.json after JSON.parse.
  * Loader (config.ts) validates this shape and throws ConfigSchemaError on mismatch.
+ *
+ * `auto_promote_eligible` is variant C policy (DECISIONS 2026-05-19): when an
+ * item from this feed comes back from triage with `editor_confidence: "high"`,
+ * the orchestrator writes it directly under `news/published/` rather than
+ * `news/incoming/` — bypassing the editorial PR review. Reserved for
+ * professional sources whose worst output is still acceptable hub content
+ * (e.g. HN frontpage, Wired AI, The Verge). Reddit feeds keep this false.
  */
 export type FeedSource = {
   name: string;
   url: string;
   enabled: boolean;
+  auto_promote_eligible: boolean;
 };
 
 /**
@@ -75,6 +83,10 @@ export type NewsFrontmatter = {
 
 /**
  * Aggregate result returned by the orchestrator. Drives the step output and exit code.
+ *
+ * `autoPromoted` and `reviewNeeded` partition `itemsWritten` per variant C
+ * (DECISIONS 2026-05-19). `itemsWritten` is their union, preserved for any
+ * caller that doesn't care about the split.
  */
 export type RunResult = {
   feedsAttempted: number;
@@ -83,6 +95,8 @@ export type RunResult = {
   itemsDeduped: number;
   itemsJudgedIrrelevant: number;
   itemsWritten: EmittedItem[];
+  autoPromoted: EmittedItem[];
+  reviewNeeded: EmittedItem[];
   exitCode: 0 | 1;
 };
 

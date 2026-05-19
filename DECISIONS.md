@@ -497,3 +497,35 @@ The gist is owned by the user, not the project. If the user leaves the org, thei
 - `docs/reference/gist-contract.md` — wire format shared with the future Claude-side `/hub-*` skill.
 
 **Implementation evidence:** commits `c1df291` (Wave A — foundations), `5a08260` (Wave B — core libs incl. `auth.ts`, `gist.ts`, `submission.ts`, validator), `64f83b2` (Wave C — UI: `SignIn.astro`, `PinButton.astro`, `/my-pins/`, `/submit-skill/`, CI workflow). Site 127 tests; pipeline 112 tests (was 93). Anonymous browsing parity verified.
+
+---
+
+## 2026-05-19 — Auto-promotion of high-confidence professional-source news items
+
+**Status:** accepted
+
+**Decision:** Variant C — when a triaged item satisfies BOTH (a) `triage.editor_confidence === "high"` AND (b) the originating feed is marked `auto_promote_eligible: true` in `config/rss-sources.json`, the orchestrator writes it directly to `news/published/` and the workflow commits it to `main` without opening an editorial PR. Every other item still routes to `news/incoming/` and is promoted only after human review.
+
+Per-feed eligibility (initial pin):
+- `r/ClaudeAI` → `false`
+- `r/ClaudeCode` → `false`
+- `Hacker News frontpage` → `true`
+- `Wired AI` → `true`
+- `The Verge` → `true`
+
+The pipeline now emits four step outputs on `$GITHUB_OUTPUT`: `new_items`, `auto_promote_count`, `review_count`, `mode` (`"auto_only" | "mixed" | "review_only" | "empty"`). The workflow has three conditional branches:
+- `mode == 'auto_only'` — `git add news/published && git commit && git push origin main` (no PR).
+- `mode == 'mixed' || mode == 'review_only'` — branch + `git add news/incoming news/published` + `gh pr create` with the standard PR body. The body now has two top-level sections, "Auto-promoted (n=N)" and "For review (n=M)", each only rendered when non-empty.
+- `mode == 'empty'` — no-op.
+
+**Rationale:** PR #5 surfaced that ~half the editorial-review effort goes into rubber-stamping items where both the triage model and the source had already done the work. Reddit + medium/low confidence items are the genuine judgment calls — those still earn human attention. Auto-promote on the easy-win items shrinks reviewer load without removing the human gate where it matters. Cost of the policy: roughly the next-day's PR shrinks to whatever Reddit + medium/low items remain; auto-promoted items become part of the publish stream immediately, eligible for the site's `glob` loader on the next build.
+
+**Reverses:** nothing. SCOPE.md "Curated RSS, not auto-aggregated" still holds — variant C is *not* unconditional auto-promote; it's auto-promote under a conjunction of structural signals (confidence + source class), each individually documented in the prompt + the config.
+
+**Alternatives considered:**
+- **Unconditional auto-promote** (rejected — loses the editorial gate entirely; would surface Reddit field-reports unreviewed).
+- **Confidence-only auto-promote** (rejected — model rates Reddit posts "high" plenty often; Reddit posts need a second pair of eyes).
+- **Source-only auto-promote** (rejected — even professional sources yield off-topic items the model itself flags as low/medium confidence; those should still go through review).
+- **Approval-bot auto-merge of the editorial PR** (rejected — same outcome as auto-promote but doubles the GH-Actions cost and adds a PR-bot to the audit trail with no benefit over committing direct to `main`).
+
+**Implementation evidence:** new module `pipeline/src/auto-promote.ts` + `pipeline/tests/auto-promote.test.ts`; `FeedSource.auto_promote_eligible: boolean` is now a required field with no fallback; `config/rss-sources.json` updated with the per-feed flag; `writeNewsItem` takes a `destination: "incoming" | "published"` parameter; `buildPrBody` takes separate `autoPromoted` and `reviewNeeded` arrays; `.github/workflows/rss-triage.yml` has three conditional steps branching on `mode`. Pipeline tests grow 112 → 124. Build + lint + tests green.

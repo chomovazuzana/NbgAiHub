@@ -59,9 +59,15 @@ jobs:
 
       # Run the Node orchestrator. It reads the four AZURE_OPENAI_* secrets,
       # walks the feeds, calls Azure OpenAI per item, emits markdown files to
-      # /news/incoming/, writes pipeline/pr-body.md when there is at least one
-      # new item, and sets `new_items=true|false` on $GITHUB_OUTPUT. The
-      # subsequent step is gated on that output (AC14 empty-run no-op).
+      # /news/incoming/ (editorial review) and/or /news/published/ (variant C
+      # auto-promote — high confidence + auto_promote_eligible source), writes
+      # pipeline/pr-body.md when there is at least one item, and sets four
+      # step outputs on $GITHUB_OUTPUT:
+      #   new_items           = "true" | "false"
+      #   auto_promote_count  = "<N>"
+      #   review_count        = "<M>"
+      #   mode                = "auto_only" | "mixed" | "review_only" | "empty"
+      # The subsequent steps are gated on `mode` (AC14 empty-run no-op).
       - name: Run RSS triage pipeline
         id: pipeline
         run: npm run start
@@ -72,27 +78,53 @@ jobs:
           AZURE_OPENAI_API_VERSION: ${{ secrets.AZURE_OPENAI_API_VERSION }}
           AZURE_OPENAI_API_KEY:     ${{ secrets.AZURE_OPENAI_API_KEY }}
 
-      # Editorial PR creation (AC13). Gated on the orchestrator's step output
-      # so that an empty run (zero new items) is a clean no-op (AC14).
-      # Body is written by the Node program to pipeline/pr-body.md and passed
-      # via --body-file (Investigation §3: multi-line bodies via -b "..." are
-      # shell-escape fragile; --body-file is the clean path).
+      # Variant C path: auto_only — every item was high-confidence from an
+      # eligible feed. The orchestrator already wrote files under
+      # news/published/; we commit them directly to main without an editorial
+      # PR. DECISIONS.md 2026-05-19 documents the policy.
+      - name: Commit auto-promoted items directly to main
+        if: steps.pipeline.outputs.mode == 'auto_only'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          DATE_UTC=$(date -u +%F)
+          N="${{ steps.pipeline.outputs.auto_promote_count }}"
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add news/published
+          git commit -m "News triage ${DATE_UTC}: ${N} auto-promoted"
+          git push origin main
+
+      # Variant C path: mixed or review_only — open the editorial PR. The
+      # orchestrator may have written files to news/incoming/ AND
+      # news/published/ (mixed), so we stage both directories. The PR body
+      # rendered by the orchestrator labels which items went where.
       - name: Open editorial PR
-        if: steps.pipeline.outputs.new_items == 'true'
+        if: steps.pipeline.outputs.mode == 'mixed' || steps.pipeline.outputs.mode == 'review_only'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           DATE_UTC=$(date -u +%F)
           BRANCH="news-triage/${DATE_UTC}-${GITHUB_RUN_ID:0:7}"
+          AUTO_N="${{ steps.pipeline.outputs.auto_promote_count }}"
+          REVIEW_N="${{ steps.pipeline.outputs.review_count }}"
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
-          git add news/incoming
-          git commit -m "News triage ${DATE_UTC}"
+          git add news/incoming news/published
+          git commit -m "News triage ${DATE_UTC} (${AUTO_N} auto + ${REVIEW_N} review)"
           git push origin "$BRANCH"
           gh pr create \
             --base main \
             --head "$BRANCH" \
-            --title "News triage ${DATE_UTC}" \
+            --title "News triage ${DATE_UTC} (${AUTO_N} auto + ${REVIEW_N} review)" \
             --body-file pipeline/pr-body.md
+
+      # Variant C path: empty — nothing to do. Step is a placeholder so the
+      # workflow's intent is fully spelled out at the YAML level rather than
+      # relying on absence-of-step semantics.
+      - name: No-op (empty run)
+        if: steps.pipeline.outputs.mode == 'empty'
+        run: echo "No new items this run — nothing to commit."

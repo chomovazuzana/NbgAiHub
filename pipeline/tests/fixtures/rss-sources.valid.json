@@ -1,4 +1,4 @@
 [
-  { "name": "Fixture Feed A", "url": "https://example.com/a.xml", "enabled": true },
-  { "name": "Fixture Feed B", "url": "https://example.com/b.xml", "enabled": false }
+  { "name": "Fixture Feed A", "url": "https://example.com/a.xml", "enabled": true, "auto_promote_eligible": true },
+  { "name": "Fixture Feed B", "url": "https://example.com/b.xml", "enabled": false, "auto_promote_eligible": false }
 ]

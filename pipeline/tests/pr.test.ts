@@ -43,7 +43,7 @@ function makeEmitted(overrides: Partial<EmittedItem> = {}): EmittedItem {
 describe("pr.buildPrBody", () => {
   it("PR body file contains title, source, link, ai_summary, confidence per item (R-5)", () => {
     const items: EmittedItem[] = [makeEmitted()];
-    const body = buildPrBody(items, "2026-05-18");
+    const body = buildPrBody([], items, "2026-05-18");
     expect(body).toContain("News triage 2026-05-18");
     expect(body).toContain("Claude 4 launches");
     expect(body).toContain("Anthropic news");
@@ -62,7 +62,7 @@ describe("pr.buildPrBody", () => {
         editor_confidence: "low",
       },
     });
-    const body = buildPrBody([low], "2026-05-18");
+    const body = buildPrBody([], [low], "2026-05-18");
     expect(body).toContain("[confidence: low]");
   });
 
@@ -91,12 +91,78 @@ describe("pr.buildPrBody", () => {
       filename: "2026-05-18-a.md",
       slug: "a",
     });
-    const body = buildPrBody([a, b], "2026-05-18");
-    const alphaIdx = body.indexOf("## Alpha");
-    const zetaIdx = body.indexOf("## Zeta");
+    const body = buildPrBody([], [a, b], "2026-05-18");
+    const alphaIdx = body.indexOf("### Alpha");
+    const zetaIdx = body.indexOf("### Zeta");
     expect(alphaIdx).toBeGreaterThan(-1);
     expect(zetaIdx).toBeGreaterThan(-1);
     expect(alphaIdx).toBeLessThan(zetaIdx);
+  });
+
+  it("renders only the 'For review' section when there are no auto-promoted items", () => {
+    const body = buildPrBody([], [makeEmitted()], "2026-05-18");
+    expect(body).toContain("## For review");
+    expect(body).not.toContain("## Auto-promoted");
+    expect(body).toContain("news/incoming/");
+  });
+
+  it("renders only the 'Auto-promoted' section when there are no review-needed items", () => {
+    const auto = makeEmitted({
+      item: {
+        feedName: "Hacker News frontpage",
+        guid: "g-hn",
+        link: "https://hn.example/x",
+        title: "Big AI news",
+        publishedAt: null,
+        rawContent: null,
+      },
+      slug: "big-ai-news",
+      filename: "2026-05-18-big-ai-news.md",
+    });
+    const body = buildPrBody([auto], [], "2026-05-18");
+    expect(body).toContain("## Auto-promoted");
+    expect(body).not.toContain("## For review");
+    expect(body).toContain("news/published/");
+    expect(body).toContain("Big AI news");
+  });
+
+  it("renders BOTH sections when mixed, with explicit counts", () => {
+    const auto = makeEmitted({
+      item: {
+        feedName: "Wired AI",
+        guid: "g-w",
+        link: "https://wired.example/x",
+        title: "Auto item",
+        publishedAt: null,
+        rawContent: null,
+      },
+      slug: "auto-item",
+      filename: "2026-05-18-auto-item.md",
+    });
+    const review = makeEmitted({
+      item: {
+        feedName: "r/ClaudeAI",
+        guid: "g-r",
+        link: "https://r.example/x",
+        title: "Review item",
+        publishedAt: null,
+        rawContent: null,
+      },
+      slug: "review-item",
+      filename: "2026-05-18-review-item.md",
+    });
+    const body = buildPrBody([auto], [review], "2026-05-18");
+    expect(body).toContain("## Auto-promoted (n=1)");
+    expect(body).toContain("## For review (n=1)");
+    expect(body).toContain("Auto item");
+    expect(body).toContain("Review item");
+    // Source grouping uses h3 inside each section.
+    expect(body).toContain("### Wired AI");
+    expect(body).toContain("### r/ClaudeAI");
+    // Auto section appears before review.
+    expect(body.indexOf("## Auto-promoted")).toBeLessThan(
+      body.indexOf("## For review"),
+    );
   });
 });
 

@@ -68,7 +68,7 @@ const EXPECTED_KEYS = [
 describe("write.writeNewsItem", () => {
   it("emits files with date-slug.md name (AC12: ^\\d{4}-\\d{2}-\\d{2}-[a-z0-9-]+\\.md$)", async () => {
     const fs = memFs();
-    const target = await writeNewsItem(makeEmitted(), "/news", fs);
+    const target = await writeNewsItem(makeEmitted(), "/news", "incoming", fs);
     expect(target).toBe("/news/incoming/2026-05-18-claude-4-launches.md");
 
     const basename = target.split("/").pop()!;
@@ -77,7 +77,7 @@ describe("write.writeNewsItem", () => {
 
   it("emits frontmatter matching shared content shape (AC11: exact 13 keys)", async () => {
     const fs = memFs();
-    const target = await writeNewsItem(makeEmitted(), "/news", fs);
+    const target = await writeNewsItem(makeEmitted(), "/news", "incoming", fs);
     const content = await fs.readFile(target, "utf8");
     const parsed = matter(String(content), matterOpts);
     const fm = parsed.data as Record<string, unknown>;
@@ -98,7 +98,7 @@ describe("write.writeNewsItem", () => {
 
   it("body contains two-sentence summary and source line", async () => {
     const fs = memFs();
-    const target = await writeNewsItem(makeEmitted(), "/news", fs);
+    const target = await writeNewsItem(makeEmitted(), "/news", "incoming", fs);
     const content = String(await fs.readFile(target, "utf8"));
     expect(content).toContain("First sentence. Second sentence.");
     expect(content).toContain("> Source: [Anthropic news](https://example.com/x)");
@@ -106,14 +106,40 @@ describe("write.writeNewsItem", () => {
 
   it("creates the incoming/ folder if missing", async () => {
     const fs = memFs(); // entirely empty
-    const target = await writeNewsItem(makeEmitted(), "/news", fs);
+    const target = await writeNewsItem(makeEmitted(), "/news", "incoming", fs);
     const stat = await fs.stat(target);
     expect(stat.isFile()).toBe(true);
   });
 
   it("throws if the target file already exists (slug-collision invariant)", async () => {
     const fs = memFs();
-    await writeNewsItem(makeEmitted(), "/news", fs);
-    await expect(writeNewsItem(makeEmitted(), "/news", fs)).rejects.toThrow();
+    await writeNewsItem(makeEmitted(), "/news", "incoming", fs);
+    await expect(
+      writeNewsItem(makeEmitted(), "/news", "incoming", fs),
+    ).rejects.toThrow();
+  });
+
+  it("writes to news/published/ when destination is 'published' (variant C)", async () => {
+    const fs = memFs();
+    const target = await writeNewsItem(makeEmitted(), "/news", "published", fs);
+    expect(target).toBe("/news/published/2026-05-18-claude-4-launches.md");
+    const stat = await fs.stat(target);
+    expect(stat.isFile()).toBe(true);
+  });
+
+  it("collision invariant still throws under the 'published' destination", async () => {
+    const fs = memFs();
+    await writeNewsItem(makeEmitted(), "/news", "published", fs);
+    await expect(
+      writeNewsItem(makeEmitted(), "/news", "published", fs),
+    ).rejects.toThrow();
+  });
+
+  it("'incoming' and 'published' are independent paths — same slug can live in both", async () => {
+    const fs = memFs();
+    const inc = await writeNewsItem(makeEmitted(), "/news", "incoming", fs);
+    const pub = await writeNewsItem(makeEmitted(), "/news", "published", fs);
+    expect(inc).toBe("/news/incoming/2026-05-18-claude-4-launches.md");
+    expect(pub).toBe("/news/published/2026-05-18-claude-4-launches.md");
   });
 });
