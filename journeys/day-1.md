@@ -8,10 +8,10 @@ authored: "2026-05-19"
 last_reviewed: "2026-05-19"
 external_link: null
 deeper_link: "https://556lowcodenocode.github.io/Onboarding/"
-ai_summary: A six-step walkthrough for someone who just got Claude Code access — install, first session, survival keys, CLAUDE.md, GitHub account, where to go tomorrow. Designed to be done in under an hour.
+ai_summary: A five-step walkthrough for someone who just got Claude Code access — install, first session, survival keys, CLAUDE.md, GitHub account. Designed to be done in under an hour.
 ---
 
-You just got Claude Code. Here's the path that takes you from "installed" to "actually productive" in under an hour. Six steps. Don't skip any.
+You just got Claude Code. Here's the path that takes you from "installed" to "actually productive" in under an hour. Five steps. Don't skip any.
 
 ---
 
@@ -63,7 +63,7 @@ Two levels:
 - **Global** at `~/.claude/CLAUDE.md` — applies to every project on your machine
 - **Project** at `<repo-root>/CLAUDE.md` — applies to this project, overrides global
 
-For a new project, run `/claudemd` (a team skill — see step 6 for how to install it). For an existing project, ask Claude: *"propose a `CLAUDE.md` for this project."*
+For a new project, run `/claudemd` (a team skill — once it's installed). For an existing project, ask Claude: *"propose a `CLAUDE.md` for this project."*
 
 Keep it under two pages. Lead with hard rules. Add to it whenever you find yourself correcting Claude on the same thing twice.
 
@@ -95,28 +95,3 @@ Once you have an account, you can also pin favourites and submit your own skills
 3. Ping the team channel to be added to the team org — that's where the team's repositories live.
 
 If anything in those three steps confuses you, just ask Claude: *"walk me through setting up my GitHub account."* It does this all day long.
-
----
-
-## Step 6 — Where to go next
-
-You're set up. By tomorrow, do these three things:
-
-1. **Add the team skills marketplace** — one-time install for the whole team's curated skill set:
-   ```
-   /plugin marketplace add 556LowCodeNoCode/Skills
-   /plugin install team@556LowCodeNoCode-skills
-   /plugin install claudemd@556LowCodeNoCode-skills
-   /plugin install commit-work@556LowCodeNoCode-skills
-   ```
-   And install this hub itself so `/hub-search`, `/hub-glossary`, `/hub-tips` work inside Claude Code:
-   ```
-   /plugin marketplace add chomovazuzana/NbgAiHub
-   /plugin install nbg-ai-hub@nbg-ai-hub-marketplace
-   ```
-2. **Try `/team` on one small task** — fix a bug, add a small feature. See the multi-agent workflow end-to-end on something low-stakes.
-3. **Read your project's `CLAUDE.md`** — once. Then keep it open in a tab.
-
-Stuck on anything? `/hub-glossary <term>` for definitions, `/hub-tips` for patterns. Or ask in the team channel — *every* newcomer hits the same walls in the first week. Asking earlier saves time.
-
-Tomorrow: pick a real piece of work and ship it.

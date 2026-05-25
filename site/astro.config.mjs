@@ -11,8 +11,15 @@ export default defineConfig({
   // GitHub Pages — published as a project page under chomovazuzana.
   // URL: https://chomovazuzana.github.io/NbgAiHub/
   // The trailing-slash setting matches Starlight's link generation.
+  //
+  // `base` is env-aware. Unset locally so the dev server runs at root
+  // (`http://localhost:4321/start-here/day-1/`). The Pages workflow sets
+  // `PUBLIC_BASE=/NbgAiHub` before `astro build` so the deployed site
+  // resolves under `/NbgAiHub/`. The postbuild rewrite script at
+  // `scripts/rewrite-base-paths.mjs` prefixes any hardcoded root-relative
+  // links in built HTML to match.
   site: 'https://chomovazuzana.github.io',
-  base: '/NbgAiHub',
+  base: process.env.PUBLIC_BASE,
   trailingSlash: 'always',
 
   // CLAUDE.md → Ports: dev server pinned to 4321.

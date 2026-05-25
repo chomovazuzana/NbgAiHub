@@ -17,7 +17,14 @@ import { readFileSync, writeFileSync, statSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const BASE = '/NbgAiHub';
+// Mirrors astro.config.mjs — both read `PUBLIC_BASE`. Unset (local build) =
+// no rewrite; the Pages workflow sets `PUBLIC_BASE=/NbgAiHub` so deployed
+// HTML gets the prefix.
+const BASE = process.env.PUBLIC_BASE;
+if (!BASE) {
+  console.log('rewrite-base-paths: PUBLIC_BASE unset — skipping rewrite');
+  process.exit(0);
+}
 
 // Known top-level routes — the only paths we rewrite. Anything not on this
 // list is either an asset (handled by Astro) or an external link.
