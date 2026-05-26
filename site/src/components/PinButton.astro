@@ -138,7 +138,8 @@ const { type, slug, iconOnly = true } = Astro.props;
 
 <script>
   // Bundled by Vite as an ES module — same pattern as SocialIconsOverride.astro.
-  import { readToken, subscribe } from '../lib/auth.ts';
+  import { readToken, signOut, subscribe } from '../lib/auth.ts';
+  import { TokenInvalidError } from '../lib/api-fetch.ts';
   import {
     findOrCreateFavoritesGist,
     addFavorite,
@@ -274,6 +275,13 @@ const { type, slug, iconOnly = true } = Astro.props;
       } catch (err) {
         setSignedInState(btn, currentlyPinned);
         btn.disabled = false;
+        if (err instanceof TokenInvalidError) {
+          // Stored token was revoked/expired since the page loaded. Drop
+          // it; the auth subscriber re-renders all pin buttons in
+          // signed-out mode and the next click opens the sign-in modal.
+          signOut();
+          return;
+        }
         const msg = err instanceof Error ? err.message : String(err);
         btn.title = `Pin failed: ${msg}`;
       }
@@ -312,6 +320,13 @@ const { type, slug, iconOnly = true } = Astro.props;
       cache = await loadFavoritesCache(token);
     } catch (err) {
       resetFavoritesCache();
+      if (err instanceof TokenInvalidError) {
+        // Stored token is dead. signOut() fires the auth subscriber
+        // which re-renders every PinButton in signed-out (hover-reveal)
+        // mode — clicking will then open the sign-in modal cleanly.
+        signOut();
+        return;
+      }
       for (const btn of buttons) {
         setSignedInState(btn, false);
         const msg = err instanceof Error ? err.message : String(err);

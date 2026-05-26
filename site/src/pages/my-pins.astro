@@ -748,7 +748,8 @@ const PIN_TYPE_LABELS = {
 </style>
 
 <script>
-  import { readToken, subscribe } from '../lib/auth.ts';
+  import { readToken, signOut, subscribe } from '../lib/auth.ts';
+  import { TokenInvalidError } from '../lib/api-fetch.ts';
   import { findOrCreateFavoritesGist, removeFavorite } from '../lib/gist.ts';
   import {
     fetchAllPinIndices,
@@ -977,6 +978,15 @@ const PIN_TYPE_LABELS = {
       const indices = await fetchAllPinIndices();
       favourites = joinFavoritesWithIndex(gistResult.document.favourites, indices);
     } catch (err) {
+      // Token rejected by GitHub (revoked / expired / wrong scope). The
+      // stored token is dead — clear it and drop back to the sign-in
+      // panel so the user gets a clear "please sign in again" path
+      // instead of a wall of JSON. signOut() fires the auth subscriber
+      // which re-renders this page in signed-out mode.
+      if (err instanceof TokenInvalidError) {
+        signOut();
+        return;
+      }
       const msg = err instanceof Error ? err.message : String(err);
       showSignedInPanel();
       setError(`Could not load your pins: ${msg}`);
