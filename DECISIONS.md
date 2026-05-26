@@ -4,6 +4,49 @@ Append-only. Each entry permanent. When a decision is superseded, add a new entr
 
 ---
 
+## 2026-05-26 (afternoon) — Site published to GitHub Pages + Starlight unlayered-cascade learning
+
+**Trigger:** Operator: "now i want you to publish it to pages (public) — make sure it looks exactly like local version! pay attention to navi bar on top, incl logo!"
+
+**Decision — what changed:**
+
+1. **Repo flipped to public + GitHub Pages enabled.** Via `gh repo edit --visibility public --accept-visibility-change-consequences` and `gh api -X POST repos/.../pages -F build_type=workflow`. Both done from CLI per operator's explicit "publish to pages (public)" authorization. The free-tier Pages constraint required public visibility (Pro/Team is the alternative for private Pages). Live URL: <https://chomovazuzana.github.io/NbgAiHub/>. Issue #18 closed.
+
+2. **Brand link + logo path made base-aware in `SplashAwareHeader.astro`.** Astro auto-prefixes its own bundled imports with the `base` config, but raw `<a href="/">` and `<img src="/public-asset.png">` in JSX are left alone. The brand-home anchor (`href="/"`) and the two NBG wordmark images (`src="/brand/nbg-wordmark-{blue,white}.png"`) were 404ing on the deployed site at `/NbgAiHub/`. Fix: `import.meta.env.BASE_URL` resolves to `'/'` locally and `'/NbgAiHub/'` on Pages, used to compose the href and the two img srcs. The postbuild `rewrite-base-paths.mjs` script's ROUTES list doesn't include `brand`, so the component-level fix is the source of truth; defensive coverage from the rewrite script remains for the known top-level page routes.
+
+3. **Topnav inner-container centering fix.** `MarketingShell.astro`'s `is:global` override set `max-width: 77.5rem` (1240px) and `padding-inline` on `.nbg-topnav__inner` but forgot `margin-inline: auto`. On wide viewports (1920px on the operator's monitor) the inner left-anchored and the right side of the nav bar — Search, Sign in, theme toggle — sat in an empty 680px gap. At 1440px the gap was 200px, less obvious but the same defect. One-line fix.
+
+4. **Starlight ships its CSS UNLAYERED — defeats `@layer nbg.components` in production CSS load order.** This is the meta-learning of the session. Three separate visual regressions all traced to the same root cause:
+
+   (a) Search trigger rendered at 40px tall / 16px font with a heavier default border instead of the intended 32px / 13px / hairline border on the deployed site. Local was correct.
+
+   (b) `.sl-markdown-content h3` rendered at 29px (Starlight's `var(--sl-text-h3)`) instead of 22px (our `var(--nbg-fs-xl)`) on `/my-pins/`. Both rules at specificity (0,1,1).
+
+   (c) The `⌘K` keyboard hint inside the search button reappeared on live despite our `display: none` override.
+
+   **Why:** `site/src/styles/tokens/layers.css` declares `@layer reset, tokens, starlight.base, starlight.core, starlight.components, nbg.primitives, nbg.components, nbg.utilities;` with our layers ABOVE Starlight's. But Starlight's stylesheets do NOT wrap themselves in `@layer starlight.X { }` — they ship UNLAYERED. Per the CSS cascade spec, **unlayered rules beat anything inside any @layer block**, regardless of declared layer order. So Starlight's rules sit effectively above `nbg.utilities` in the cascade.
+
+   Vite's dev CSS bundle happened to put our rules later in document order (same-specificity tiebreaker = ours wins), so locally we never saw the problem. The production CSS bundle reverses the order, Starlight ends up last in document order, and Starlight's defaults win every same-specificity comparison.
+
+   **Pragmatic fix applied:** `!important` on the specific properties that must win — `font-size`, `font-family` on every `.sl-markdown-content h1..h6` in `content-prose.css`, plus `height`, `padding`, `border`, `background`, `color`, `font-size` on the search trigger overrides in `SplashAwareHeader.astro`. Also switched the search/⌘K selectors from partially-scoped (`.nbg-topnav__search :global(button[data-open-modal])`) to fully-global (`:global(.nbg-topnav__search button[data-open-modal])`) so Astro's per-component scope hash isn't a second axis of fragility.
+
+   **Forward fix path (not done now):** wrap Starlight's CSS imports in `@layer starlight.X { @import ... }` via a Vite plugin or a PostCSS step. Single-source fix that lets us drop the !important sprinkles. Until then: any future local-vs-deploy visual drift on this project should be assumed to be this gotcha first. Tracked as Issue #20. Saved to project memory at `feedback_starlight_unlayered.md` so future sessions catch it on the first iteration.
+
+5. **PAT 401 handling on `/my-pins/` and `PinButton`: auto sign-out instead of raw JSON dump.** When the stored PAT is revoked or expires, GitHub returns 401. Previously `my-pins.astro` rendered the raw 401 body ("Bad credentials") and `PinButton`'s click handler surfaced the same via `title=`. Both left the user stuck in a broken signed-in state with no clean way back. Now both `catch` blocks detect `TokenInvalidError` specifically, call `signOut()` (clears localStorage), and let the existing auth subscriber re-render in signed-out mode — user lands on the friendly sign-in panel and can paste a fresh PAT in one go.
+
+**Verification:** every page rendered live at chomovazuzana.github.io/NbgAiHub/ — homepage, /skills/, /tips/, /glossary/, /start-here/foundations/, /start-here/day-1/, /my-pins/. Logo loads (naturalWidth=1338 = real PNG). Topnav inner centered (x=340 in 1920px viewport, perfectly symmetric). Search trigger: 32px tall, 13px font, hairline border — matches local. My-pins h3: 22px Newsreader serif — matches local. `⌘K` hidden everywhere. Tests: site 310/310, pipeline 205/205.
+
+**Files touched:**
+- `site/src/components/SplashAwareHeader.astro` — base-aware brand link + logo src + fully-global search-trigger overrides with !important
+- `site/src/components/MarketingShell.astro` — `margin-inline: auto` for topnav inner
+- `site/src/styles/content-prose.css` — !important on h1-h6 font-size + font-family
+- `site/src/pages/my-pins.astro` — auto-sign-out on TokenInvalidError
+- `site/src/components/PinButton.astro` — auto-sign-out on TokenInvalidError
+
+**Commits:** `954b5dd`, `bf5b320`, `55e74e0`, `e8116eb`, `8b76942`.
+
+---
+
 ## 2026-05-26 — Listing-page parity pass + sign-in modal redesign + violet focus-ring token fix
 
 **Trigger:** Operator review of `/tips` and `/skills` against the homepage and `/start-here/foundations`: "something is off… they should be very similar in terms of layout, on top I want easy navigation for beginner / advanced / all… consistent with the homepage and Foundations." Plus: "if you click on login, the pop-up for adding the token from GitHub is very ugly — redesign it, consistent with the rest of the UI."
