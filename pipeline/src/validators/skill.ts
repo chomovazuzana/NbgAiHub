@@ -37,6 +37,7 @@ export interface SkillFrontmatter {
   external_link: string | null;
   deeper_link: string | null;
   ai_summary: string;
+  when_to_use: string;
   install_command: string;
   skill_id: string;
   origin: "internal" | "community" | "external";
@@ -64,6 +65,7 @@ const REQUIRED_FIELDS: readonly (keyof SkillFrontmatter)[] = [
   "external_link",
   "deeper_link",
   "ai_summary",
+  "when_to_use",
   "install_command",
   "skill_id",
   "origin",
@@ -293,6 +295,24 @@ export async function validateSkillFile(
         "ai_summary",
         "non-empty",
         "ai_summary must be a non-empty string",
+      );
+    }
+  }
+
+  // 10b. when_to_use non-empty string, ≤220 chars (matches site schema)
+  if ("when_to_use" in data) {
+    const v = data["when_to_use"];
+    if (typeof v !== "string" || v.trim().length === 0) {
+      push(
+        "when_to_use",
+        "non-empty",
+        "when_to_use must be a non-empty string",
+      );
+    } else if (v.length > 220) {
+      push(
+        "when_to_use",
+        "max-length",
+        `when_to_use must be ≤220 characters (got ${v.length})`,
       );
     }
   }

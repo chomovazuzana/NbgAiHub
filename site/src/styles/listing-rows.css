@@ -1,0 +1,321 @@
+/* site/src/styles/listing-rows.css
+ *
+ * Shared row-list system used by /tips and /skills so they read as a visual
+ * pair. Imported from both pages — Astro's `<style is:global>` bundles per-page
+ * which would leave the second page un-styled.
+ *
+ * Related: tips.astro, skills.astro, project-design.md §S.13.16 (AgentNews aesthetic).
+ */
+
+@layer nbg.components {
+  /* AudienceFilter hides rows it doesn't want to show. */
+  .listing-row.audience-hidden { display: none; }
+
+  /* Hero — filter integrated into the hero, not its own bordered box. */
+  .hero--stack .hero__filter {
+    margin-top: 1.5rem;
+  }
+  /* Drop the chunky bordered chrome around the filter so it merges with the
+     hero rhythm. The segmented pill control inside still carries its own
+     background, so the chip group remains visually clustered. */
+  .hero__filter .audience-filter {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Section spacing — listing pages don't want the full ~80px gaps that
+     long-form content uses. Tighten to ~40px so the sections read as parts
+     of one scrollable index rather than separate articles. */
+  .section--listing {
+    padding-block: 2.5rem !important;
+  }
+  .section--listing + .section--listing {
+    border-top: 1px solid var(--nbg-hairline, #ebeff5);
+  }
+  .section--listing .section__head {
+    margin-bottom: 1.5rem;
+  }
+
+  /* List + row chrome. */
+  .listing-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+  /* Defeat Starlight's `:not(...) + :not(...) { margin-top: 1rem }` rule
+     inside .sl-markdown-content that would otherwise shove each <li>
+     down by 16px and break the tight rhythm. */
+  .listing-list > li { margin: 0; }
+  .listing-list > li::marker { content: ''; }
+
+  .listing-row {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: start;
+    gap: 0.6rem 1.25rem;
+    padding: 1.25rem 1.25rem 1.25rem 1.25rem;
+    /* Visible border at rest gives each row a defined surface against the
+     * page background. Uses --nbg-border (the standard card-edge weight)
+     * not --nbg-hairline — hairline (#ebeff5) is too close to the page bg
+     * (#f4f6f9) and the row reads as floating text. On hover the border
+     * stays the same weight but the surface fills with white + soft shadow
+     * for the lift effect. */
+    border: 1px solid var(--nbg-border, #dce3eb);
+    border-radius: 12px;
+    background: transparent;
+    transition:
+      background-color 150ms ease,
+      border-color     150ms ease,
+      box-shadow       150ms ease;
+    scroll-margin-top: 6rem;
+  }
+  .listing-row + .listing-row {
+    margin-top: 0;
+  }
+  .listing-row:hover {
+    background: var(--nbg-surface, #ffffff);
+    border-color: var(--nbg-border, #dce3eb);
+    box-shadow: 0 6px 18px -12px rgba(11, 30, 46, 0.18);
+  }
+  .listing-row:target {
+    background: var(--nbg-accent-soft, #e0f2f4);
+    border-color: var(--nbg-accent, #007a8a);
+    box-shadow: inset 3px 0 0 var(--nbg-accent, #007a8a);
+  }
+
+  .listing-row__main {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+  .listing-row__eyebrow {
+    margin: 0;
+    font-family: var(--nbg-ff-mono, ui-monospace, monospace);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--nbg-muted, #5b6b80);
+  }
+  .listing-row__eyebrow-sep {
+    margin: 0 0.45rem;
+    color: var(--nbg-muted-2, #8392a6);
+  }
+  .listing-row__title {
+    margin: 0;
+    font-family: var(--nbg-ff-serif, 'Newsreader', Georgia, serif);
+    font-size: 1.35rem;
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: -0.012em;
+    color: var(--nbg-ink, #0b1e2e);
+  }
+  .listing-row__summary {
+    margin: 0;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--nbg-ink-2, #1a3148);
+    max-width: 56rem;
+  }
+
+  .listing-row__meta {
+    align-self: start;
+    display: inline-flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.6rem;
+    justify-self: end;
+    padding-top: 0.1rem;
+  }
+
+  /* Quiet pills — info, not interactive. */
+  .listing-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-family: var(--nbg-ff-mono, ui-monospace, monospace);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    line-height: 1;
+    cursor: help;
+  }
+  .listing-pill--audience-beginner {
+    background: color-mix(in srgb, var(--nbg-accent, #007a8a) 12%, transparent);
+    color: var(--nbg-accent-ink, #00525c);
+    border: 1px solid color-mix(in srgb, var(--nbg-accent, #007a8a) 25%, transparent);
+  }
+  .listing-pill--audience-advanced {
+    background: var(--nbg-surface-2, #f8fafc);
+    color: var(--nbg-ink, #0b1e2e);
+    border: 1px solid var(--nbg-border, #dce3eb);
+  }
+  .listing-pill--audience-both {
+    background: transparent;
+    color: var(--nbg-muted, #5b6b80);
+    border: 1px solid var(--nbg-hairline, #ebeff5);
+  }
+  .listing-pill--origin-internal {
+    background: color-mix(in srgb, #1d4ed8 8%, transparent);
+    color: #1d4ed8;
+    border: 1px solid color-mix(in srgb, #1d4ed8 25%, transparent);
+  }
+  .listing-pill--origin-external {
+    background: transparent;
+    color: var(--nbg-muted, #5b6b80);
+    border: 1px solid var(--nbg-hairline, #ebeff5);
+  }
+
+  /* Hover-revealed pin — lives inline in .listing-row__meta so the column
+     reserves space for it (constant width regardless of hover state — no
+     layout jitter, no overlap with the audience pill). At rest the pin is
+     invisible + non-interactive; on row hover it fades in. */
+  .listing-row__pin {
+    opacity: 0;
+    transform: translateY(-2px);
+    transition:
+      opacity 140ms ease,
+      transform 140ms ease;
+    pointer-events: none;
+    display: inline-flex;
+  }
+  .listing-row:hover .listing-row__pin,
+  .listing-row:focus-within .listing-row__pin,
+  .listing-row__pin:focus-within {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  /* Always show the pin when it's already pressed (pinned). */
+  .listing-row__pin:has(.nbg-pin[aria-pressed='true']) {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  /* Skill-specific: the command-hint line under the title. */
+  .listing-row__cmd {
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .listing-row__cmd-label {
+    font-family: var(--nbg-ff-mono, ui-monospace, monospace);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--nbg-muted, #5b6b80);
+  }
+  .listing-row__cmd-code {
+    font-family: var(--nbg-ff-mono, ui-monospace, monospace);
+    font-size: 0.8125rem;
+    padding: 0.18rem 0.55rem;
+    border-radius: 4px;
+    background: var(--nbg-c-teal-900, #052329);
+    color: #ffffff;
+    border: 1px solid var(--nbg-c-teal-800, #0a3a42);
+  }
+  .listing-row__source {
+    font-size: 0.8125rem;
+    color: var(--nbg-accent, #007a8a);
+    text-decoration: none;
+    font-weight: 500;
+    border-bottom: 1px solid color-mix(in srgb, var(--nbg-accent, #007a8a) 35%, transparent);
+    padding-bottom: 1px;
+    transition: border-color 120ms ease;
+  }
+  .listing-row__source:hover {
+    border-bottom-color: var(--nbg-accent, #007a8a);
+  }
+
+  /* "Use this when…" block — the most important answer for a reader who
+     doesn't know if they should install the skill.
+     - Spans both columns of the row grid (grid-column: 1 / -1) so it
+       extends the full inner row width, not just the main column.
+     - Label and body sit inline on one line (with wrap) for a tighter
+       callout — was previously a 2-row block with vertical gap.
+     - Accent-tinted left rule + soft fill = clear "this is a key cue". */
+  .listing-row__when {
+    grid-column: 1 / -1;
+    margin: 0.35rem 0 0;
+    padding: 0.5rem 0.85rem;
+    border-left: 3px solid var(--nbg-accent, #007a8a);
+    background: var(--nbg-accent-soft, #e0f2f4);
+    border-radius: 0 6px 6px 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--nbg-ink, #0b1e2e);
+  }
+  .listing-row__when-label {
+    font-family: var(--nbg-ff-mono, ui-monospace, monospace);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--nbg-accent-ink, #00525c);
+    margin-right: 0.5rem;
+  }
+  .listing-row__when-body {
+    /* inline so it sits next to the label */
+  }
+
+  /* "What is a skill?" intro panel — sits above the first section, helps
+     first-time visitors who don't already know what skills are. Quiet,
+     same visual weight as the page lede so it doesn't compete with the rows. */
+  .listing-intro {
+    margin: 0 0 2rem;
+    padding: 1.25rem 1.5rem;
+    border: 1px solid var(--nbg-border, #dce3eb);
+    border-radius: 12px;
+    background: var(--nbg-surface, #ffffff);
+    display: grid;
+    gap: 0.55rem;
+  }
+  .listing-intro__eyebrow {
+    margin: 0;
+    font-family: var(--nbg-ff-mono, ui-monospace, monospace);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--nbg-accent, #007a8a);
+  }
+  .listing-intro__body {
+    margin: 0;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--nbg-ink-2, #1a3148);
+  }
+  .listing-intro__body strong {
+    color: var(--nbg-ink, #0b1e2e);
+    font-weight: 600;
+  }
+
+  @media (max-width: 720px) {
+    .listing-row {
+      grid-template-columns: 1fr;
+      grid-template-areas: "main" "meta";
+      gap: 0.65rem;
+      padding: 1.1rem;
+    }
+    .listing-row__meta { justify-self: start; }
+    .listing-row__pin {
+      /* Touch devices can't hover — show always. */
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    .listing-row__title { font-size: 1.2rem; }
+  }
+}

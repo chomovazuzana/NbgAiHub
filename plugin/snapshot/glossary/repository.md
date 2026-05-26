@@ -9,6 +9,8 @@ last_reviewed: "2026-05-19"
 external_link: null
 deeper_link: null
 ai_summary: A project's home on GitHub — one folder per repo, contains all the code, history, issues, and PRs for one piece of work.
+tldr: "A project's home on GitHub. One folder that contains all the code, every change ever made, and the discussions around it."
+aliases: ["repo", "repos", "repositories"]
 ---
 
 A repository (repo) is where a single project lives on GitHub. One folder, one project. It holds the files, the full history of every change ever made, the issue tracker, and the PR review surface.

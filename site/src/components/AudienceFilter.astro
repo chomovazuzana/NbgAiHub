@@ -91,7 +91,11 @@ const { scope = '[data-audience]' } = Astro.props;
     .audience-filter__chip {
       display: inline-flex;
       align-items: center;
-      padding: var(--nbg-sp-1-5) var(--nbg-sp-3-5);
+      /* --nbg-sp-3-5 was a phantom token (never defined in primitives.css);
+       * historically the chip padding-x was 0 and the regression was hidden
+       * by the filter's outer bordered chrome. Now that the outer chrome
+       * is gone (filter integrated into the hero), use real tokens. */
+      padding: 0.4rem 0.9rem;
       font-family: var(--nbg-type-body);
       font-size: var(--nbg-fs-sm);
       font-weight: var(--nbg-fw-medium);
@@ -126,41 +130,25 @@ const { scope = '[data-audience]' } = Astro.props;
 
 <script is:inline>
   (function () {
-    const KEY = 'nbgaihub.audience';
+    // 2026-05-26: filter no longer persists across pages. The filter is a
+    // transient UI choice for the current view (like a search box) — every
+    // visit to /skills or /tips starts fresh at "Everything", regardless of
+    // what was selected on a previous visit. Per operator: "everything to be
+    // default on skills and tips."
+    //
+    // Within-visit filter changes still work — they just don't survive a
+    // page navigation or refresh. Legacy localStorage entries from the old
+    // persisted model are cleared on first run so they don't leak back if
+    // the script is ever re-pointed at storage.
+    const KEY_LEGACY = 'nbgaihub.audience';
+    try { localStorage.removeItem(KEY_LEGACY); } catch (_) { /* ignore */ }
 
-    /** Read current selection, migrating the old checkbox-array format. */
     function readSelection() {
-      try {
-        const raw = localStorage.getItem(KEY);
-        if (!raw) return 'all';
-        // New format: string. Old format: array of strings.
-        try {
-          const parsed = JSON.parse(raw);
-          if (typeof parsed === 'string') return parsed;
-          if (Array.isArray(parsed)) {
-            // Legacy: array containing 'beginner','advanced','both'.
-            // If all three present → 'all'; if only beginner → 'beginner'; etc.
-            const hasB = parsed.includes('beginner');
-            const hasA = parsed.includes('advanced');
-            if (hasB && hasA) return 'all';
-            if (hasB) return 'beginner';
-            if (hasA) return 'advanced';
-            return 'all';
-          }
-          return 'all';
-        } catch (_) {
-          // raw was a bare string (not JSON-encoded)
-          return raw;
-        }
-      } catch (_) {
-        return 'all';
-      }
+      return 'all';
     }
 
-    function writeSelection(value) {
-      try {
-        localStorage.setItem(KEY, JSON.stringify(value));
-      } catch (_) { /* private-mode: ignore */ }
+    function writeSelection(_value) {
+      // no-op — filter state is per-visit, not persisted.
     }
 
     function applyAll(value) {

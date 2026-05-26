@@ -9,6 +9,7 @@ last_reviewed: "2026-05-19"
 external_link: "https://github.com/556LowCodeNoCode/Skills"
 deeper_link: null
 ai_summary: Orchestrates a multi-agent team — refiner, scanner, investigator, planner, designer, parallel coders, reviewer, dependency validator, test builder, integration verifier — to take a request from idea to merged code in one sitting.
+when_to_use: Use this when you have a feature-sized request — bigger than a one-line fix, smaller than a multi-week project. It runs the full ten-phase pipeline (plan, design, code, review, test, verify) in one sitting.
 install_command: "/plugin install team@556LowCodeNoCode-skills"
 skill_id: team
 origin: internal

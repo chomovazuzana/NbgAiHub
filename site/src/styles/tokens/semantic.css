@@ -83,6 +83,13 @@
     /* Focus ring color */
     --nbg-color-focus-ring: var(--nbg-accent);
 
+    /* Focus ring (light theme) — teal accent, soft inner gap from page bg.
+     * Overrides the violet primitive in tokens/primitives.css that was
+     * left over from the pre-AgentNews palette.
+     * Composed: 2px page-bg gap + 2px teal accent ring. */
+    --nbg-sh-focus-ring: 0 0 0 2px var(--nbg-bg),
+                         0 0 0 4px var(--nbg-accent);
+
     /* Audience semantic tokens — kept as-is (out of AgentNews scope) */
     --nbg-color-audience-beginner-bg: var(--nbg-c-emerald-100);
     --nbg-color-audience-beginner-fg: var(--nbg-c-emerald-800);
@@ -178,6 +185,10 @@
     --nbg-color-link-visited: var(--nbg-accent-ink);
 
     --nbg-color-focus-ring: var(--nbg-accent);
+
+    /* Focus ring (dark theme) — teal accent, soft inner gap from page bg. */
+    --nbg-sh-focus-ring: 0 0 0 2px var(--nbg-bg),
+                         0 0 0 4px var(--nbg-accent);
 
     /* Audience tokens — dark variants */
     --nbg-color-audience-beginner-bg: hsl(155 60% 18%);

@@ -9,6 +9,7 @@ last_reviewed: "2026-05-19"
 external_link: "https://github.com/556LowCodeNoCode/Skills"
 deeper_link: null
 ai_summary: Generates production-grade frontend components and pages with creative, polished design — avoids the generic "AI-slop" aesthetic that gives away machine-generated UIs.
+when_to_use: Use this when you want a frontend that looks intentional, not algorithmic — when Claude's default Tailwind-card-and-shadow output would give away that a human didn't sit at the keyboard.
 install_command: "/plugin install frontend-design@556LowCodeNoCode-skills"
 skill_id: frontend-design
 origin: community

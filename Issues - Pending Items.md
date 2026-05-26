@@ -4,6 +4,9 @@ Pending items first (most critical at top). Completed items after. Remove fixed 
 
 ## Pending
 
+19. **Site — `--nbg-sh-focus-ring` primitive in `tokens/primitives.css:243-244` still references `var(--nbg-c-violet-500)`** (low / cosmetic-debt; semantic override already wins in production).
+    Discovered 2026-05-26 while redesigning the sign-in modal. The primitive was a leftover from the pre-AgentNews violet palette and was painting every focus ring on the site purple. Quick fix landed in `tokens/semantic.css` — `--nbg-sh-focus-ring: 0 0 0 2px var(--nbg-bg), 0 0 0 4px var(--nbg-accent)` overrides added in both light and dark `:root` blocks. Cascade order means semantic.css wins, so production is teal everywhere. **Leftover:** the violet line in `primitives.css` is now a footgun — if anyone resets `--nbg-sh-focus-ring` they'll get violet back. Cleanup is a one-line edit, but I left it because (a) any tooling that loads primitives standalone without semantic.css still gets a working (if violet) ring, and (b) the cascade is doing its job in practice. Forward improvement, not a defect.
+
 18. **Site — `base: '/NbgAiHub'` removed from `site/astro.config.mjs` for local dev; needs env-driven re-add for GitHub Pages deploy** (medium / deploy blocker once we publish).
     The parallel session had set `base: '/NbgAiHub'` so the static build addresses URLs the way GitHub Pages serves them (`chomovazuzana.github.io/NbgAiHub/`). This broke local dev: hardcoded `href="/skills/"` etc. resolved at server root, not under the base — every internal link 404'd. Operator preference: site reachable at bare `localhost:4321/` with internal links working. Resolution: removed the `base` line for dev; commented an env-driven pattern in the config:
     ```js

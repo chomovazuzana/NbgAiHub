@@ -108,6 +108,12 @@ const skills = defineCollection({
     skill_id: z
       .string()
       .regex(/^[a-z0-9-]+$/, { message: 'skill_id must match /^[a-z0-9-]+$/' }),
+    // 2026-05-26 — every skill must answer "when would I reach for this?"
+    // Plain text, max 200 chars, lead with "Use this when…" (convention,
+    // not enforced). Renders as a labeled block on the listing row and
+    // helps a reader decide whether to install without reading the source.
+    // No silent fallback: Zod fails the build if missing.
+    when_to_use: z.string().min(1).max(220),
     origin: z.enum(['internal', 'community', 'external']),
     category: z.enum([
       'workflow',

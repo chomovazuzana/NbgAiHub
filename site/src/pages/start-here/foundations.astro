@@ -203,7 +203,7 @@ function resourceKindTone(kind: Resource['kind']): string {
   <section class="hero hero--stack">
     <div class="wrap">
       <div class="hero__intro">
-        <h1 class="hero__title">Foundations — <em>start here if it's all new</em></h1>
+        <h1 class="hero__title">Foundations, <em>before your first session</em></h1>
         <p class="hero__lede">
           <Fragment set:html={linkGlossaryTerms(heroSummary)} />
           <small>Audience: complete beginner · ~20 min read · 16 curated external resources</small>
@@ -277,14 +277,24 @@ function resourceKindTone(kind: Resource['kind']): string {
 
   <section class="section" id="next">
     <div class="wrap">
-      <div class="empty">
-        <p class="empty__eyebrow">Next up</p>
-        <h2 class="empty__title">Day 1 — your first session.</h2>
-        <p class="empty__body" set:html={linkGlossaryTerms("You've got the mental models. Now install Claude Code and run your first session. Six steps, about thirty minutes, you'll be productive by the end of it.")} />
-        <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-          <a class="feature__cta" href="/start-here/day-1/">Begin → Day 1</a>
-          <a class="feature__cta" href="/glossary/">Or: browse the glossary →</a>
-        </div>
+      <div class="section__head">
+        <h2>Where next</h2>
+      </div>
+      <div class="grid-2">
+        <article class="card card--text">
+          <div class="card__body">
+            <div class="card__meta"><span class="eyebrow eyebrow--accent">Day 1</span></div>
+            <h3 class="card__title"><a href="/start-here/day-1/">Your first session</a></h3>
+            <p class="card__summary" set:html={linkGlossaryTerms("You've got the mental models. Now install Claude Code and run your first session — six steps, about thirty minutes, productive by the end of it.")} />
+          </div>
+        </article>
+        <article class="card card--text">
+          <div class="card__body">
+            <div class="card__meta"><span class="eyebrow eyebrow--accent">Glossary</span></div>
+            <h3 class="card__title"><a href="/glossary/">Look up terms</a></h3>
+            <p class="card__summary" set:html={linkGlossaryTerms("Thirty-six terms in plain English — what they mean, when they matter. Use it as a reference, not a reading list.")} />
+          </div>
+        </article>
       </div>
     </div>
   </section>

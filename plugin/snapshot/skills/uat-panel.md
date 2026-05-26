@@ -9,6 +9,7 @@ last_reviewed: "2026-05-19"
 external_link: "https://github.com/556LowCodeNoCode/Skills"
 deeper_link: null
 ai_summary: Conversational UAT — Claude walks a non-developer through validating a built feature, asks scripted questions, and records pass/fail evidence the team can sign off on.
+when_to_use: Use this when the app is ready for business UAT — Claude walks the reviewer through each acceptance criterion live and produces a clean pass/fail sign-off record.
 install_command: "/plugin install uat-panel@556LowCodeNoCode-skills"
 skill_id: uat-panel
 origin: internal

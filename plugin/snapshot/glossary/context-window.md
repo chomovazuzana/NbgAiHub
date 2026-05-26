@@ -9,9 +9,13 @@ last_reviewed: "2026-05-19"
 external_link: null
 deeper_link: null
 ai_summary: The amount of conversation history Claude can remember at once — when it fills up, older content gets dropped and Claude starts forgetting earlier parts of the session.
+tldr: "How much Claude can remember in one conversation. Once it fills up, the oldest messages get forgotten — like short-term memory has a limit."
+aliases: ["context window", "context windows"]
 ---
 
-Every Claude session has a finite context window — think of it as Claude's working memory for this conversation. As you keep asking things, the window fills with prompts, code, outputs, and Claude's responses. When it's full, the oldest parts get pushed out and Claude starts forgetting.
+Every Claude session has a finite context window — think of it as a glass of water. Every prompt you send, every file Claude reads, every command output, and every reply Claude writes pours something in. When the glass is full, the oldest content spills out and Claude starts forgetting earlier parts of the conversation.
+
+That's why answers get vaguer or repeat themselves in long sessions — the glass overflowed and the file Claude read an hour ago is no longer in scope.
 
 Two commands to manage it:
 

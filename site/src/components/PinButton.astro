@@ -1,104 +1,138 @@
 ---
-// PinButton.astro — Per-item pin/unpin button (Step P-C2, project-design.md §P.4.4).
+// PinButton.astro — Per-item pin/unpin button.
 //
-// The button is always rendered server-side as a `<button>` carrying
-// `data-pin-type` and `data-pin-slug` attributes. All state — visibility,
-// label, aria-pressed — is decided by the client `<script>` block below, which
-// reads `auth.readToken()` and calls into `gist.ts` for pin/unpin operations.
+// Always rendered server-side as a <button> carrying `data-pin-type` and
+// `data-pin-slug`. All visibility / label / aria-pressed state is decided
+// by the <script> at the bottom of this file, which reads `auth.readToken()`
+// and (when signed in) calls into `gist.ts` for pin/unpin operations.
 //
-// Hidden by default (CSS `[hidden]`); the script flips it visible after it
-// determines auth state, so SSR + no-JS renders an inert page rather than a
-// flash of unhydrated "Pin" buttons.
+// 2026-05-25 late-night UAT redesign:
+//   - Signed-out users now SEE the pin icon (was: hidden entirely). Per the
+//     listing-page design, the icon hides at row rest and reveals on row hover
+//     via a CSS rule on the parent row — see tips.astro / skills.astro.
+//   - Clicking the icon while signed-out dispatches `nbgaihub:open-signin-modal`
+//     (existing behavior — unchanged).
+//   - The button renders as an icon-only square (no "Sign in to pin" label),
+//     keeping rows compact. When signed in it shows the pin + tiny label.
+//   - An inline SVG pushpin replaces the emoji glyph — emoji renders inconsistently
+//     across OSes and clashed with the rest of the UI.
 //
-// All pin/unpin logic goes through gist.ts — there are no scattered fetch
-// calls in this file. The button optimistically updates the UI before the
-// network call resolves and reverts on failure.
+// All pin/unpin logic still goes through gist.ts. The button optimistically
+// updates the UI before the network call resolves and reverts on failure.
 
 export type PinType = 'news' | 'skill' | 'tip' | 'glossary' | 'journey-step';
 
 interface Props {
   type: PinType;
   slug: string;
+  /** When true (the default on listing rows), the button renders as an icon-
+   *  only square and is meant to be hover-revealed by the parent row's CSS. */
+  iconOnly?: boolean;
 }
 
-const { type, slug } = Astro.props;
+const { type, slug, iconOnly = true } = Astro.props;
 ---
 
 <button
   type="button"
-  class="nbg-pin"
+  class:list={["nbg-pin", iconOnly && "nbg-pin--icon-only"]}
   data-pin-type={type}
   data-pin-slug={slug}
+  data-icon-only={iconOnly ? 'true' : 'false'}
   aria-pressed="false"
   aria-label="Sign in to pin"
-  hidden
+  title="Sign in to pin this"
 >
-  <span class="nbg-pin__icon" aria-hidden="true">📌</span>
-  <span class="nbg-pin__label">Sign in to pin</span>
+  <span class="nbg-pin__icon" aria-hidden="true">
+    {/* lucide-style pushpin — clear "this gets pinned" affordance. */}
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 17v5" />
+      <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
+    </svg>
+  </span>
+  <span class="nbg-pin__label">Pin</span>
 </button>
 
 <style>
-  /* P4.I restyle — tokens drive everything; pressed state gets an accent
-   * halo. Script-driven attributes (data-pin-type, data-pin-slug, aria-pressed,
-   * aria-label) and DOM selectors (.nbg-pin, .nbg-pin__icon, .nbg-pin__label)
-   * are preserved bit-for-bit (AC23). Visual surface mirrors Button "ghost". */
   @layer nbg.components {
-    /* Explicit [hidden] override — .nbg-pin's `display: inline-flex` would
-       otherwise win specificity against the UA's `[hidden] { display: none }`
-       default. Required so signed-out users see no "Sign in to pin" noise
-       per UAT feedback #13. */
-    .nbg-pin[hidden] { display: none !important; }
-
+    /* When signed-out + iconOnly + hover-reveal is in play, the parent row's
+       CSS controls visibility (opacity 0 → 1 on row hover). We keep the
+       button in the DOM and let it ride the row's hover state. */
     .nbg-pin {
       display: inline-flex;
       align-items: center;
-      gap: var(--nbg-sp-1);
-      padding: var(--nbg-sp-1) var(--nbg-sp-2);
-      border-radius: var(--nbg-r-md);
-      border: 1px solid var(--nbg-color-border-subtle);
-      background: transparent;
-      color: var(--nbg-color-fg-secondary);
+      gap: 0.35rem;
+      padding: 0.4rem 0.65rem;
+      border-radius: 8px;
+      border: 1px solid var(--nbg-border, #dce3eb);
+      background: var(--nbg-surface, #ffffff);
+      color: var(--nbg-muted, #5b6b80);
       cursor: pointer;
-      font-family: var(--nbg-type-body);
-      font-size: var(--nbg-fs-xs);
-      font-weight: var(--nbg-fw-medium);
-      line-height: 1.2;
+      font-family: var(--nbg-ff-body);
+      font-size: 0.75rem;
+      font-weight: 500;
+      line-height: 1;
       transition:
-        background-color var(--nbg-dur-fast) var(--nbg-ease-out),
-        color            var(--nbg-dur-fast) var(--nbg-ease-out),
-        border-color     var(--nbg-dur-fast) var(--nbg-ease-out),
-        box-shadow       var(--nbg-dur-fast) var(--nbg-ease-out);
+        background-color 120ms ease,
+        color            120ms ease,
+        border-color     120ms ease,
+        opacity          120ms ease,
+        transform        120ms ease;
     }
     .nbg-pin:hover {
-      background: var(--nbg-color-bg-surface-hover);
-      color: var(--nbg-color-fg-primary);
-      border-color: var(--nbg-color-border-default);
+      background: var(--nbg-accent-soft, #e0f2f4);
+      color: var(--nbg-accent-ink, #00525c);
+      border-color: var(--nbg-accent, #007a8a);
     }
     .nbg-pin:focus-visible {
       outline: none;
       box-shadow: var(--nbg-sh-focus-ring);
     }
+
+    /* Icon-only mode — used on listing rows. */
+    .nbg-pin--icon-only {
+      padding: 0.4rem;
+      width: 32px;
+      height: 32px;
+      justify-content: center;
+    }
+    .nbg-pin--icon-only .nbg-pin__label {
+      /* Visually hide the label but keep it for screen readers. */
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
     .nbg-pin[aria-pressed='true'] {
-      background: var(--nbg-color-accent-bg);
-      color: var(--nbg-color-accent-fg);
-      border-color: var(--nbg-color-accent);
-      /* P7 code-review fix: replaced ad-hoc hsl(265 85% 60% / 0.25) glow
-       * literal with the design's accent-glow token. Same look, single
-       * source of truth, light-mode-aware. */
-      box-shadow: var(--nbg-color-accent-glow);
+      background: var(--nbg-accent, #007a8a);
+      color: #ffffff;
+      border-color: var(--nbg-accent, #007a8a);
     }
     .nbg-pin[aria-pressed='true']:hover {
-      background: var(--nbg-color-accent-bg);
-      color: var(--nbg-color-accent);
+      background: var(--nbg-accent-ink, #00525c);
+      color: #ffffff;
+      border-color: var(--nbg-accent-ink, #00525c);
     }
     .nbg-pin[disabled] {
-      opacity: 0.6;
+      opacity: 0.55;
       cursor: progress;
     }
     .nbg-pin__icon {
-      font-size: var(--nbg-fs-sm);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       line-height: 1;
     }
+
+    /* Hidden state — still controlled by the script for the case where a
+       caller passes <PinButton /> outside of a hover-reveal row. */
+    .nbg-pin[hidden] { display: none !important; }
   }
 </style>
 
@@ -142,14 +176,29 @@ const { type, slug } = Astro.props;
   }
 
   function setSignedOut(btn: HTMLButtonElement): void {
-    // When signed-out, hide per-card pin buttons entirely — the header's
-    // top-level Sign in CTA is the single sign-in surface for the site.
-    // Showing "Sign in to pin" on every card is visual noise and a nag.
-    btn.hidden = true;
+    // When signed-out, leave the button visible — the parent row controls
+    // hover-reveal (rows have CSS `.nbg-pin { opacity: 0 } .row:hover .nbg-pin
+    // { opacity: 1 }`). Clicking opens the sign-in modal.
+    //
+    // The exception is when the button is rendered in non-iconOnly mode
+    // outside a listing row — in that case we still hide it (preserving the
+    // previous UAT #13 behaviour for places like my-pins/news where pinning
+    // doesn't make sense for signed-out users).
+    const iconOnly = btn.dataset.iconOnly === 'true';
+    if (!iconOnly) {
+      btn.hidden = true;
+      btn.disabled = false;
+      btn.setAttribute('aria-pressed', 'false');
+      btn.setAttribute('aria-label', 'Sign in to pin');
+      const label = btn.querySelector<HTMLElement>('.nbg-pin__label');
+      if (label) label.textContent = 'Sign in to pin';
+      return;
+    }
+    btn.hidden = false;
     btn.disabled = false;
     btn.setAttribute('aria-pressed', 'false');
-    btn.setAttribute('aria-label', 'Sign in to pin');
-    btn.removeAttribute('title');
+    btn.setAttribute('aria-label', 'Sign in to pin this');
+    btn.setAttribute('title', 'Sign in to pin this');
     const label = btn.querySelector<HTMLElement>('.nbg-pin__label');
     if (label) label.textContent = 'Sign in to pin';
   }
@@ -159,10 +208,8 @@ const { type, slug } = Astro.props;
     btn.disabled = false;
     btn.setAttribute('aria-pressed', pinned ? 'true' : 'false');
     btn.setAttribute('aria-label', pinned ? 'Unpin' : 'Pin');
-    btn.removeAttribute('title');
-    const icon = btn.querySelector<HTMLElement>('.nbg-pin__icon');
+    btn.setAttribute('title', pinned ? 'Unpin' : 'Pin');
     const label = btn.querySelector<HTMLElement>('.nbg-pin__label');
-    if (icon) icon.textContent = pinned ? '✅' : '📌';
     if (label) label.textContent = pinned ? 'Pinned' : 'Pin';
   }
 
@@ -173,13 +220,14 @@ const { type, slug } = Astro.props;
     return { type, slug };
   }
 
-  function onSignedOutClick(_event: MouseEvent): void {
+  function onSignedOutClick(event: MouseEvent): void {
+    // Don't propagate to the parent <a> (some rows may wrap titles in links)
+    event.preventDefault();
+    event.stopPropagation();
     document.dispatchEvent(new CustomEvent('nbgaihub:open-signin-modal'));
   }
 
   function bindSignedOutHandler(btn: HTMLButtonElement): void {
-    // Idempotent — store the handler on the element so we can replace it on
-    // state changes without leaking listeners.
     const existing = (btn as any).__nbgPinHandler as
       | ((e: MouseEvent) => void)
       | undefined;
@@ -196,7 +244,9 @@ const { type, slug } = Astro.props;
     const meta = getMeta(btn);
     if (!meta) return;
 
-    const handler = async (_event: MouseEvent): Promise<void> => {
+    const handler = async (event: MouseEvent): Promise<void> => {
+      event.preventDefault();
+      event.stopPropagation();
       const currentlyPinned = btn.getAttribute('aria-pressed') === 'true';
       const nextPinned = !currentlyPinned;
 
@@ -220,10 +270,8 @@ const { type, slug } = Astro.props;
         }
         cache.document = updated;
         btn.disabled = false;
-        // Confirm visual state (in case of dedup no-ops).
         setSignedInState(btn, isPinned(updated, meta.type, meta.slug));
       } catch (err) {
-        // Revert.
         setSignedInState(btn, currentlyPinned);
         btn.disabled = false;
         const msg = err instanceof Error ? err.message : String(err);
@@ -263,9 +311,6 @@ const { type, slug } = Astro.props;
     try {
       cache = await loadFavoritesCache(token);
     } catch (err) {
-      // Cache failed — surface as error tooltip; keep buttons visible but
-      // re-enabled in unpinned state. Reset cache promise so a later click
-      // can retry.
       resetFavoritesCache();
       for (const btn of buttons) {
         setSignedInState(btn, false);
@@ -284,12 +329,13 @@ const { type, slug } = Astro.props;
     }
   }
 
-  /** Bind a handler that retries cache load on click after a previous failure. */
   function bindSignedInHandlerWithRetry(
     btn: HTMLButtonElement,
     token: string,
   ): void {
-    const handler = async (_event: MouseEvent): Promise<void> => {
+    const handler = async (event: MouseEvent): Promise<void> => {
+      event.preventDefault();
+      event.stopPropagation();
       btn.disabled = true;
       try {
         const cache = await loadFavoritesCache(token);
@@ -319,7 +365,6 @@ const { type, slug } = Astro.props;
     try {
       return readToken();
     } catch {
-      // localStorage unavailable — treat as signed-out, never throw.
       return null;
     }
   }
@@ -347,7 +392,6 @@ const { type, slug } = Astro.props;
     void render(buttons);
 
     subscribe(() => {
-      // Auth state changed — drop cached gist doc and re-render every button.
       resetFavoritesCache();
       void render(collect());
     });

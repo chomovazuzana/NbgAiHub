@@ -9,6 +9,7 @@ last_reviewed: "2026-05-19"
 external_link: "https://github.com/556LowCodeNoCode/Skills"
 deeper_link: null
 ai_summary: A family of commands (gsd-new-project, gsd-progress, gsd-do, gsd-next, etc.) for managing multi-week Claude Code projects with persistent state in a `.planning/` folder.
+when_to_use: Use this for multi-week projects where you'll pause, resume, and need an audit trail. Persistent `.planning/` folder with roadmap and per-phase artefacts. Overkill for one-sitting work — try `/team` instead.
 install_command: "/plugin install gsd@556LowCodeNoCode-skills"
 skill_id: gsd
 origin: community

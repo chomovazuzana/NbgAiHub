@@ -90,7 +90,7 @@ A curated Claude Code knowledge hub for bank colleagues, framed around *"what I 
 |---|---|
 | Glossary | 36 |
 | Tips | 14 |
-| Skills | 9 |
+| Skills | 6 |
 | Journeys | 2 |
 | News (published) | 54 |
 <!-- /AUTO:counts -->

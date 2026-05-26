@@ -4,6 +4,71 @@ Append-only. Each entry permanent. When a decision is superseded, add a new entr
 
 ---
 
+## 2026-05-26 — Listing-page parity pass + sign-in modal redesign + violet focus-ring token fix
+
+**Trigger:** Operator review of `/tips` and `/skills` against the homepage and `/start-here/foundations`: "something is off… they should be very similar in terms of layout, on top I want easy navigation for beginner / advanced / all… consistent with the homepage and Foundations." Plus: "if you click on login, the pop-up for adding the token from GitHub is very ugly — redesign it, consistent with the rest of the UI."
+
+**Analysis — three concrete mismatches, not aesthetic preference:**
+
+1. **Hero scale.** Home and Foundations use `.hero hero--stack` with `clamp(2.5rem, 5vw, 4rem)` titles. Tips/Skills were using `.hero hero--compact` — much smaller, making the listings feel like sub-pages of the destinations rather than peers.
+2. **Filter integration.** AudienceFilter rendered in its own bordered box one full row below the hero lede — read as bolted-on. Foundations keeps every hero element in one tight cluster.
+3. **Page-parity.** Tips had cluster grouping (Prompting / Survival / Context / Compliance), Skills was one flat list. Operator wanted them to read as twins.
+
+**Three modal issues, all root-causable:**
+
+4. **Modal pinned top-left** even with `showModal()`. CSS had no `margin: auto` or explicit positioning, so the dialog defaulted to the document's top-left corner.
+5. **Purple focus ring** on every input/button across the site. `--nbg-sh-focus-ring` in `tokens/primitives.css:243-244` was hard-coded `var(--nbg-c-violet-500)` — a leftover from the pre-AgentNews violet palette. The semantic tokens flipped to teal in 2026-05-19 but the focus-ring primitive was missed in the sweep.
+6. **Modal voice + layout** felt utilitarian — "Sign in to pin items" / "Validate & sign in" / undifferentiated wall of text. Operator: "consistent with the rest of the UI."
+
+**Decision — what changed:**
+
+1. **Listings redesigned as structural twins** (`tips.astro`, `skills.astro`).
+   - Hero lifted to `.hero hero--stack` matching Foundations. Title gets the same serif + italic-accent treatment ("Patterns I keep *reaching for*" / "Skills worth *installing*").
+   - AudienceFilter dropped its own border/background — now sits inline inside the hero column, reading as part of the page header instead of a control panel.
+   - Skills got a parallel grouping by `origin` (Built at NBG / From the community) so it mirrors Tips' four thematic clusters. The two pages now share the same section vocabulary ("S1 / 2" + label + blurb, "T1 / 4" + label + blurb).
+   - Reader mode (`mode="reader"`) dropped from both — that mode is built for long-form articles like Foundations and hides `.section__head .count`, eating the cluster blurb. Listings are scannable indexes, not articles.
+   - Shared row CSS extracted to `site/src/styles/listing-rows.css` and imported from both pages. (See the new feedback memory on Astro `<style is:global>` scoping — it doesn't reach sibling pages.)
+
+2. **Hover-revealed pin icon on every row** (`PinButton.astro`, `listing-rows.css`).
+   - When signed out, the per-row pin button now stays in the DOM but is `opacity: 0` at rest and `opacity: 1` on row hover. Lives inline in `.listing-row__meta` so the column reserves space for it — no layout shift, no overlap with the audience pill (first iteration positioned it absolute top-right and it overlapped the BEGINNER pill, truncating it to "BEGINN"; fixed).
+   - Clicking the pin while signed out dispatches `nbgaihub:open-signin-modal` (existing behavior — unchanged) which now opens the redesigned modal. End-to-end verified via Puppeteer.
+   - Previous UAT #13 rule ("hide all per-card pin CTAs when signed out") still holds in spirit — there's no text label, no "Sign in to pin" nag, just a quiet icon that only appears under the cursor. `PinButton` accepts an `iconOnly` prop; non-iconOnly callers still get the old hide-when-signed-out behavior for places like /my-pins/.
+
+3. **Sign-in modal redesigned** (`SignInModal.astro`).
+   - Centered via explicit `position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%)`. Works for both `showModal()` and the `setAttribute('open','')` fallback.
+   - Title rewritten as a serif italic match of the homepage hero: "Pin what you want to come *back to*." (was "Sign in to pin items").
+   - Eyebrow `SIGN IN` in mono teal above the title — same eyebrow vocabulary used by Foundations sections.
+   - Two-step layout. Step `01`: "Create a token on GitHub" (with `gist` scope hint + a button-styled deeplink, not just a text link). Step `02`: "Paste the token here" (lock icon inside the input, mono placeholder). Each step is its own bordered card with a teal numbered chip — visually mirrors the homepage router-card numbered-step language.
+   - Close button as an inline SVG (was the `&times;` glyph). Backdrop is a softer 6px blur. Primary action is now "Sign in" (was "Validate & sign in" — devspeak).
+   - All `data-nbg-signin-*` hooks and the `<script>` block are preserved bit-for-bit. Auth flow (`signIn(token)` from `lib/auth.ts`) is untouched.
+
+4. **Focus-ring token fixed site-wide** (`tokens/semantic.css`).
+   - Added `--nbg-sh-focus-ring: 0 0 0 2px var(--nbg-bg), 0 0 0 4px var(--nbg-accent)` overrides in both `:root` (light) and `[data-theme='dark']` blocks. Composed at the semantic layer where `--nbg-accent` is correctly themed. The violet primitive in `tokens/primitives.css:243-244` is kept as a fallback (touching it would break tooling that still references the legacy token name, but the semantic override wins because semantic.css cascades after primitives.css).
+   - One-line cause / one-line fix. Affected every focusable control on the site — buttons, inputs, the audience filter chips, the close button. All now show a soft teal halo instead of the bright purple ring.
+
+**Why this approach** (vs alternatives considered):
+- **Approach A — match the homepage `grid-3` card aesthetic for listings.** Vetoed because UAT 2026-05-25 explicitly killed the 3-column card wall ("→ single-column list grouped"). Reinstating cards would undo recently approved work.
+- **Approach C — glossary-style A-Z sidebar.** Vetoed because the listings only have 9 skills + 14 tips. A sidebar signals "this list is huge" that the actual content doesn't deliver. Glossary keeps its sidebar because it has 36 entries.
+- Approach B (Foundations-style stacked reader rows) anchors the listings to the design vocabulary the operator clearly approves of (Foundations, the homepage), gives the symmetric twin layout, and makes the hover-pin trivial to wire.
+
+**Verification (visual + automated):**
+- Puppeteer screenshots: tips/skills in light + dark + 420px mobile. Hover-pin verified to be `opacity: 0` at rest, `opacity: 1` on `.listing-row:hover`, audience pill no longer overlapped. Signed-out pin click dispatches `nbgaihub:open-signin-modal` and the dialog opens. Modal rect after `showModal()`: x=480 in a 1440 viewport — centered. Input focus ring `border-color: rgb(0, 122, 138)` (teal) with a soft teal halo — no more `rgb(139, 66, 240)` purple.
+- 310/310 site tests pass against a freshly built `dist/`. The one test that touches the modal (`build-output.test.ts:326`) only asserts the `[data-nbg-signin-dialog]` attribute count which is preserved.
+- AUTO doc counts: glossary 36, tips 14, skills 9, journeys 2, news 54 — unchanged (no content added).
+
+**Files touched:**
+- `site/src/styles/tokens/semantic.css` — added `--nbg-sh-focus-ring` overrides per theme.
+- `site/src/components/SignInModal.astro` — full redesign of markup + styles; script preserved.
+- `site/src/components/PinButton.astro` — full rewrite; new `iconOnly` prop; signed-out users now see a hover-revealed icon.
+- `site/src/pages/tips.astro` — full rewrite; new hero, integrated filter, listing-row structure.
+- `site/src/pages/skills.astro` — full rewrite; new hero, integrated filter, grouped by `origin`.
+- `site/src/styles/listing-rows.css` — NEW. Shared row CSS imported by both listings.
+
+**Open items not addressed:**
+- `--nbg-sh-focus-ring` in `tokens/primitives.css:243-244` still references `var(--nbg-c-violet-500)`. The semantic-layer override wins, but the primitive is a footgun if anyone resets it. Left as-is for now (low risk; future cleanup).
+
+---
+
 ## 2026-05-25 (late-night) — UAT-driven UX overhaul: listing redesigns, code-block fix, MyPins 2-col, submit-skill + contribute removed, 556lowcodenocode references purged
 
 **Trigger:** Operator ran the model as a "pretend-to-be-a-colleague" UAT tester against `localhost:4321` ahead of sharing the link with team colleagues the next day. Output: `UAT-feedback-2026-05-25.md` (26 issues, sorted Critical → High → Medium → Low). Operator then selected 16 items to fix and called out 3 additions during the session (full-width "New here?" panel, better newcomer/experienced icons, dark teal code blocks instead of black).
