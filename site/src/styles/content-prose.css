@@ -16,13 +16,21 @@
 @layer nbg.components {
   /* ─── Headings ─────────────────────────────────────────────────────── */
 
+  /* `!important` on font-size + font-family because Starlight ships its
+   * own `.sl-markdown-content h3:not(:where(.not-content *))` rule
+   * UNLAYERED — and unlayered rules beat anything in @layer regardless
+   * of declared layer order (CSS cascade spec). Locally Vite's dev CSS
+   * load order let our rule appear last and win; the production CSS
+   * bundle reverses the order and Starlight wins. The !important on
+   * specific values keeps our typography while leaving Starlight's
+   * other rule properties intact. */
   .sl-markdown-content h1,
   .sl-markdown-content h2,
   .sl-markdown-content h3,
   .sl-markdown-content h4,
   .sl-markdown-content h5,
   .sl-markdown-content h6 {
-    font-family: var(--nbg-type-display);
+    font-family: var(--nbg-type-display) !important;
     color: var(--nbg-color-fg-primary);
     letter-spacing: var(--nbg-ls-tight);
     line-height: var(--nbg-lh-headline);
@@ -31,29 +39,29 @@
   }
 
   .sl-markdown-content h1 {
-    font-size: var(--nbg-fs-display-md);
+    font-size: var(--nbg-fs-display-md) !important;
     font-weight: var(--nbg-fw-bold);
     line-height: var(--nbg-lh-display);
     margin-block: var(--nbg-sp-8) var(--nbg-sp-4);
   }
   .sl-markdown-content h2 {
-    font-size: var(--nbg-fs-2xl);
+    font-size: var(--nbg-fs-2xl) !important;
     font-weight: var(--nbg-fw-bold);
     margin-block: var(--nbg-sp-8) var(--nbg-sp-3);
   }
   .sl-markdown-content h3 {
-    font-size: var(--nbg-fs-xl);
+    font-size: var(--nbg-fs-xl) !important;
     font-weight: var(--nbg-fw-semibold);
     margin-block: var(--nbg-sp-6) var(--nbg-sp-2);
   }
   .sl-markdown-content h4 {
-    font-size: var(--nbg-fs-lg);
+    font-size: var(--nbg-fs-lg) !important;
     font-weight: var(--nbg-fw-semibold);
     margin-block: var(--nbg-sp-5) var(--nbg-sp-2);
   }
   .sl-markdown-content h5,
   .sl-markdown-content h6 {
-    font-size: var(--nbg-fs-md);
+    font-size: var(--nbg-fs-md) !important;
     font-weight: var(--nbg-fw-semibold);
     margin-block: var(--nbg-sp-4) var(--nbg-sp-2);
   }

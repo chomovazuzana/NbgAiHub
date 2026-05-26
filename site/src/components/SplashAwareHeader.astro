@@ -468,38 +468,43 @@ const base = import.meta.env.BASE_URL;
     /* ── Pagefind search trigger — compact ────────────────────────────
      * Selector targets the <button data-open-modal> rendered by
      * @astrojs/starlight/components/Search.astro. Reset Starlight's
-     * sprawling 22rem-wide pill into a tight icon + ⌘K chip. */
-    .nbg-topnav__search :global(site-search) {
+     * sprawling 22rem-wide pill into a tight icon + ⌘K chip.
+     *
+     * Fully-global selectors (:global() wrapping the whole chain) + key
+     * properties marked !important so production CSS load order can't let
+     * Starlight's defaults win (height, font-size, border-color, padding).
+     * See the ⌘K rule below for the same pattern + reasoning. */
+    :global(.nbg-topnav__search site-search) {
       display: inline-flex;
       align-items: center;
     }
-    .nbg-topnav__search :global(button[data-open-modal]) {
-      height: 32px;
+    :global(.nbg-topnav__search button[data-open-modal]) {
+      height: 32px !important;
       width: auto;
       max-width: none;
       min-width: 9.5rem;
-      padding-inline: var(--nbg-sp-2-5) var(--nbg-sp-2);
+      padding: 1px var(--nbg-sp-2) 1px var(--nbg-sp-2-5) !important;
       gap: var(--nbg-sp-2);
-      border: 1px solid var(--nbg-color-border-subtle);
+      border: 1px solid var(--nbg-color-border-subtle) !important;
       border-radius: var(--nbg-r-md);
-      background: var(--nbg-color-bg-surface);
-      color: var(--nbg-color-fg-muted);
+      background: var(--nbg-color-bg-surface) !important;
+      color: var(--nbg-color-fg-muted) !important;
       font-family: var(--nbg-type-body);
-      font-size: var(--nbg-fs-sm);
+      font-size: var(--nbg-fs-sm) !important;
       font-weight: var(--nbg-fw-normal);
       transition:
         border-color var(--nbg-dur-fast) var(--nbg-ease-out),
         color        var(--nbg-dur-fast) var(--nbg-ease-out),
         background-color var(--nbg-dur-fast) var(--nbg-ease-out);
     }
-    .nbg-topnav__search :global(button[data-open-modal]:hover) {
-      border-color: var(--nbg-color-border-default);
-      color: var(--nbg-color-fg-primary);
-      background: var(--nbg-color-bg-surface-hover);
+    :global(.nbg-topnav__search button[data-open-modal]:hover) {
+      border-color: var(--nbg-color-border-default) !important;
+      color: var(--nbg-color-fg-primary) !important;
+      background: var(--nbg-color-bg-surface-hover) !important;
     }
-    .nbg-topnav__search :global(button[data-open-modal] svg) {
-      width: 14px;
-      height: 14px;
+    :global(.nbg-topnav__search button[data-open-modal] svg) {
+      width: 14px !important;
+      height: 14px !important;
       --sl-icon-size: 14px;
     }
     /* Hide the ⌘K keyboard hint inside the search trigger.
