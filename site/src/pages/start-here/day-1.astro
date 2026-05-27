@@ -13,52 +13,12 @@
  *     compound selector + !important on `.day-section .day-section__title`.
  *   - `[data-mode="reader"] .foundation-step { max-width: 56rem }` is sidestepped
  *     by using a unique class (`.day-section__prose`) instead.
- *
- * Per-step visuals (preserved from prior version):
- *   d3 — first-session TerminalDemo
- *   d4 — survival-keys TerminalDemo
  */
 import { getEntry, getCollection } from 'astro:content';
 import { createMarkdownProcessor } from '@astrojs/markdown-remark';
 import MarketingShell from '../../components/MarketingShell.astro';
-import TerminalDemo from '../../components/TerminalDemo.astro';
-import type { TerminalFrame } from '../../components/TerminalDemo.astro';
 import remarkGlossaryLink from '../../plugins/remark-glossary-link.ts';
 import { linkGlossaryTerms } from '../../lib/glossary-link-string';
-
-const firstSessionFrames: TerminalFrame[] = [
-  {
-    prompt: 'cd NbgAiHub',
-    response: '/Users/suzy/projects/NbgAiHub',
-    callout: { n: 1, note: 'Move into the project folder. Claude only sees files in here.' },
-  },
-  {
-    prompt: 'claude --dangerously-skip-permissions',
-    response: 'Reading CLAUDE.md … Ready. What would you like to do?',
-    callout: { n: 2, note: 'Claude reads CLAUDE.md and waits for your first prompt.' },
-  },
-  {
-    prompt: "what's in this repo? short answer please",
-    response: 'A curated Claude Code knowledge hub. Astro static site, glossary, tips, skills, and a Day-1 walkthrough.',
-    callout: { n: 3, note: 'Plain-language questions work. No code required to start.' },
-  },
-];
-const survivalKeysFrames: TerminalFrame[] = [
-  {
-    prompt: 'find every Python file and convert to TypeScript',
-    response: 'Found 142 .py files. Beginning conversion…\n  src/a.py → src/a.ts\n  src/b.py → src/b.ts\n  …',
-    callout: { n: 1, note: "Claude misread the task. Press Esc once — it stops immediately." },
-  },
-  {
-    response: '⎯ Aborted. Press Esc Esc to rewind the conversation, or type a new instruction.',
-    callout: { n: 2, note: 'Esc Esc opens a session-history scrubber to walk back several steps.' },
-  },
-  {
-    prompt: '/compact',
-    response: 'Summarising the conversation so far … done. Active context: ~3.1k tokens.',
-    callout: { n: 3, note: '/compact summarises a long session without losing the thread. /clear wipes it.' },
-  },
-];
 
 const glossaryCount = (await getCollection('glossary')).length;
 
@@ -138,11 +98,12 @@ const introHtml = intro.length > 0 ? (await processor.render(intro)).code : '';
 // Short TOC labels — chosen to fit the 240px sidebar without wrapping.
 // Order must match the step order in journeys/day-1.md.
 const tocLabels: Record<number, string> = {
-  1: 'Install & terminal',
-  2: 'GitHub account',
-  3: 'First session',
-  4: 'Survival keys',
+  1: 'Open a terminal',
+  2: 'Install Claude Code',
+  3: 'GitHub account',
+  4: 'First session',
   5: 'Write CLAUDE.md',
+  6: 'Survival keys',
 };
 
 const heroTitle = entry.data.title ?? 'Day 1';
@@ -220,24 +181,128 @@ const heroSummary = entry.data.ai_summary;
             <h2 class="day-section__title" set:html={step.title.replace(/`([^`]+)`/g, '<code>$1</code>')} />
           </header>
 
+          {step.n === 5 && (
+            <figure
+              class="claudemd-figure"
+              aria-label="Without a CLAUDE.md, the same prompt produces three different reports across three runs. With a CLAUDE.md, the same prompt produces three identical reports."
+            >
+              <div class="claudemd-figure__panels">
+                <article class="claudemd-panel claudemd-panel--without">
+                  <header class="claudemd-panel__head">
+                    <span class="claudemd-panel__eyebrow claudemd-panel__eyebrow--warn">Without CLAUDE.md</span>
+                  </header>
+                  <div class="claudemd-panel__inputs">
+                    <div class="claudemd-icon">
+                      <svg class="claudemd-icon__svg" viewBox="0 0 24 24" aria-hidden="true">
+                        <rect class="claudemd-icon__page" x="3" y="3" width="18" height="18" rx="2" />
+                        <line class="claudemd-icon__line" x1="3" y1="9" x2="21" y2="9" />
+                        <line class="claudemd-icon__line" x1="9" y1="3" x2="9" y2="21" />
+                        <line class="claudemd-icon__line" x1="15" y1="3" x2="15" y2="21" />
+                        <line class="claudemd-icon__line" x1="3" y1="15" x2="21" y2="15" />
+                      </svg>
+                      <span class="claudemd-icon__label">loans.xlsx</span>
+                    </div>
+                  </div>
+                  <div class="claudemd-panel__prompt">
+                    <span class="claudemd-panel__prompt-text">"analyse + report"</span>
+                  </div>
+                  <div class="claudemd-panel__arrow" aria-hidden="true">↓</div>
+                  <div class="claudemd-panel__outputs">
+                    <div class="claudemd-output">
+                      <svg class="claudemd-glyph claudemd-glyph--varied" viewBox="0 0 40 52" aria-hidden="true">
+                        <rect class="claudemd-glyph__page" x="4" y="8" width="32" height="38" rx="2" />
+                        <line class="claudemd-glyph__line" x1="8" y1="16" x2="28" y2="16" />
+                        <line class="claudemd-glyph__line" x1="8" y1="22" x2="20" y2="22" />
+                        <line class="claudemd-glyph__line" x1="8" y1="28" x2="32" y2="28" />
+                        <line class="claudemd-glyph__line" x1="8" y1="34" x2="24" y2="34" />
+                        <line class="claudemd-glyph__line" x1="8" y1="40" x2="30" y2="40" />
+                      </svg>
+                      <span class="claudemd-output__label">Run 1</span>
+                    </div>
+                    <div class="claudemd-output">
+                      <svg class="claudemd-glyph claudemd-glyph--varied" viewBox="0 0 40 52" aria-hidden="true">
+                        <rect class="claudemd-glyph__page" x="6" y="2" width="28" height="48" rx="2" />
+                        <line class="claudemd-glyph__line" x1="10" y1="12" x2="30" y2="12" />
+                        <line class="claudemd-glyph__line" x1="10" y1="22" x2="22" y2="22" />
+                        <line class="claudemd-glyph__line" x1="10" y1="32" x2="28" y2="32" />
+                        <line class="claudemd-glyph__line" x1="10" y1="42" x2="18" y2="42" />
+                      </svg>
+                      <span class="claudemd-output__label">Run 2</span>
+                    </div>
+                    <div class="claudemd-output">
+                      <svg class="claudemd-glyph claudemd-glyph--varied" viewBox="0 0 40 52" aria-hidden="true">
+                        <rect class="claudemd-glyph__page" x="3" y="4" width="34" height="44" rx="2" />
+                        <rect class="claudemd-glyph__title" x="7" y="9" width="20" height="3" rx="0.5" />
+                        <line class="claudemd-glyph__line" x1="7" y1="18" x2="33" y2="18" />
+                        <line class="claudemd-glyph__line" x1="7" y1="24" x2="27" y2="24" />
+                        <line class="claudemd-glyph__line" x1="7" y1="30" x2="33" y2="30" />
+                        <line class="claudemd-glyph__line" x1="7" y1="36" x2="22" y2="36" />
+                        <line class="claudemd-glyph__line" x1="7" y1="42" x2="30" y2="42" />
+                      </svg>
+                      <span class="claudemd-output__label">Run 3</span>
+                    </div>
+                  </div>
+                  <p class="claudemd-panel__caption claudemd-panel__caption--warn">Every run reinvents the wheel.</p>
+                </article>
+
+                <article class="claudemd-panel claudemd-panel--with">
+                  <header class="claudemd-panel__head">
+                    <span class="claudemd-panel__eyebrow claudemd-panel__eyebrow--accent">With CLAUDE.md</span>
+                  </header>
+                  <div class="claudemd-panel__inputs">
+                    <div class="claudemd-icon">
+                      <svg class="claudemd-icon__svg" viewBox="0 0 24 24" aria-hidden="true">
+                        <rect class="claudemd-icon__page" x="3" y="3" width="18" height="18" rx="2" />
+                        <line class="claudemd-icon__line" x1="3" y1="9" x2="21" y2="9" />
+                        <line class="claudemd-icon__line" x1="9" y1="3" x2="9" y2="21" />
+                        <line class="claudemd-icon__line" x1="15" y1="3" x2="15" y2="21" />
+                        <line class="claudemd-icon__line" x1="3" y1="15" x2="21" y2="15" />
+                      </svg>
+                      <span class="claudemd-icon__label">loans.xlsx</span>
+                    </div>
+                    <div class="claudemd-icon claudemd-icon--accent">
+                      <svg class="claudemd-icon__svg" viewBox="0 0 24 24" aria-hidden="true">
+                        <path class="claudemd-icon__page" d="M5 3 L15 3 L20 8 L20 21 L5 21 Z" />
+                        <path class="claudemd-icon__fold" d="M15 3 L15 8 L20 8" />
+                        <line class="claudemd-icon__line" x1="9" y1="13" x2="17" y2="13" />
+                        <line class="claudemd-icon__line" x1="9" y1="16" x2="15" y2="16" />
+                        <line class="claudemd-icon__line" x1="9" y1="19" x2="17" y2="19" />
+                      </svg>
+                      <span class="claudemd-icon__label">CLAUDE.md</span>
+                    </div>
+                  </div>
+                  <div class="claudemd-panel__prompt">
+                    <span class="claudemd-panel__prompt-text">"analyse + report"</span>
+                  </div>
+                  <div class="claudemd-panel__arrow" aria-hidden="true">↓</div>
+                  <div class="claudemd-panel__outputs">
+                    {[1, 2, 3].map((n) => (
+                      <div class="claudemd-output">
+                        <svg class="claudemd-glyph claudemd-glyph--consistent" viewBox="0 0 40 52" aria-hidden="true">
+                          <rect class="claudemd-glyph__page" x="4" y="2" width="32" height="48" rx="2" />
+                          <rect class="claudemd-glyph__title" x="8" y="8" width="18" height="3" rx="0.5" />
+                          <line class="claudemd-glyph__line" x1="8" y1="17" x2="32" y2="17" />
+                          <line class="claudemd-glyph__line" x1="8" y1="23" x2="28" y2="23" />
+                          <line class="claudemd-glyph__line" x1="8" y1="29" x2="32" y2="29" />
+                          <line class="claudemd-glyph__line" x1="8" y1="35" x2="26" y2="35" />
+                          <line class="claudemd-glyph__line" x1="8" y1="41" x2="32" y2="41" />
+                        </svg>
+                        <span class="claudemd-output__label">Run {n}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p class="claudemd-panel__caption claudemd-panel__caption--accent">Same output, every time.</p>
+                </article>
+              </div>
+              <figcaption class="claudemd-figure__caption">
+                Same folder, same prompt. The only difference is <code>CLAUDE.md</code>.
+              </figcaption>
+            </figure>
+          )}
+
           <div class="day-section__prose">
             <div class="day-section__body sl-markdown-content" set:html={step.html} />
           </div>
-
-          {step.n === 3 && (
-            <TerminalDemo
-              title="Your first session"
-              frames={firstSessionFrames}
-              caption="Stylised preview. A real recording will replace this slot."
-            />
-          )}
-          {step.n === 4 && (
-            <TerminalDemo
-              title="Esc, Esc Esc, /compact, /clear"
-              frames={survivalKeysFrames}
-              caption="Stylised preview. A real recording will replace this slot."
-            />
-          )}
         </section>
       ))}
     </div>
@@ -334,7 +399,7 @@ const heroSummary = entry.data.ai_summary;
       margin: 0;
       padding: 0;
       display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-columns: repeat(6, minmax(0, 1fr));
       gap: 0.75rem;
     }
     .journey-overview li { margin: 0; }
@@ -387,10 +452,13 @@ const heroSummary = entry.data.ai_summary;
       padding: 0.05em 0.3em;
       border-radius: var(--nbg-r-sm);
     }
-    @media (max-width: 60rem) {
+    @media (max-width: 75rem) {
+      .journey-overview ol { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 48rem) {
       .journey-overview ol { grid-template-columns: 1fr 1fr; }
     }
-    @media (max-width: 36rem) {
+    @media (max-width: 30rem) {
       .journey-overview ol { grid-template-columns: 1fr; gap: 0.5rem; }
       .journey-overview a { padding: 0.75rem 0.875rem; }
     }
@@ -586,6 +654,18 @@ const heroSummary = entry.data.ai_summary;
       color: var(--nbg-ink) !important;
       font-weight: 600 !important;
     }
+    /* Make links unambiguously look like links: accent colour +
+       always-visible underline (don't rely on hover-to-discover). */
+    .day-section__body :global(a) {
+      color: var(--nbg-accent) !important;
+      text-decoration: underline !important;
+      text-decoration-thickness: 1px !important;
+      text-underline-offset: 0.2em !important;
+    }
+    .day-section__body :global(a:hover),
+    .day-section__body :global(a:focus-visible) {
+      text-decoration-thickness: 2px !important;
+    }
 
     /* ─── Bottom Next card ─────────────────────────────────────── */
     .day-next {
@@ -663,6 +743,218 @@ const heroSummary = entry.data.ai_summary;
       .journey-overview a {
         transition: none;
       }
+    }
+
+    /* ─── Step 6: CLAUDE.md "before vs after" figure ──────────────
+       Visual sibling to Foundations' glass-of-water figure: two
+       panels side-by-side, each composed of small inline SVGs
+       (input icons, prompt pill, output report glyphs). The whole
+       point is that the LEFT outputs have visibly different shapes
+       and the RIGHT outputs are identical — the "chaos vs
+       consistency" reads in 0.5s. */
+    .claudemd-figure {
+      margin: 0 auto 1.75rem !important;
+      max-width: 48rem !important;
+      padding: 0 !important;
+    }
+    /* Flexbox (not grid) for the panels: flex with `align-items: stretch`
+       guarantees both panels share the same top Y *and* the same bottom Y,
+       which the prior grid layout did not (probe showed a 16px Y offset).
+       `align-content: stretch` ensures the row fills the cross-axis. */
+    .claudemd-figure__panels {
+      display: flex;
+      gap: 1rem;
+      align-items: stretch;
+    }
+    @media (max-width: 600px) {
+      .claudemd-figure__panels { flex-direction: column; }
+    }
+    /* !important margin: 0 — Starlight ships an unlayered `article + article`
+       rule that adds margin-top: 16px to the second panel, breaking
+       top-alignment. Same gotcha + fix pattern as Foundations'
+       .foundation-compare__col (see foundations.astro). */
+    .claudemd-panel {
+      flex: 1 1 0;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 0.75rem;
+      margin: 0 !important;
+      padding: 1.25rem 1rem 1.125rem;
+      background: var(--nbg-surface);
+      border: 1px solid var(--nbg-hairline);
+      border-radius: var(--nbg-r-md, 8px);
+      text-align: center;
+    }
+    /* Caption pinned to panel bottom so its Y matches across both
+       panels regardless of content height differences above. */
+    .claudemd-panel__caption {
+      margin-top: auto !important;
+    }
+    .claudemd-panel--with {
+      border-color: color-mix(in srgb, var(--nbg-accent) 35%, var(--nbg-hairline));
+      background: color-mix(in srgb, var(--nbg-accent) 3%, var(--nbg-surface));
+    }
+    .claudemd-panel__head { width: 100%; }
+    .claudemd-panel__eyebrow {
+      font-family: var(--nbg-ff-mono);
+      font-size: 0.6875rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 600;
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      line-height: 1.2;
+    }
+    .claudemd-panel__eyebrow--warn {
+      color: #b8860b;
+      background: color-mix(in srgb, #b8860b 12%, transparent);
+    }
+    .claudemd-panel__eyebrow--accent {
+      color: var(--nbg-accent);
+      background: color-mix(in srgb, var(--nbg-accent) 12%, transparent);
+    }
+    .claudemd-panel__inputs {
+      display: flex;
+      gap: 0.875rem;
+      align-items: flex-end;
+      justify-content: center;
+      min-height: 56px;
+    }
+    .claudemd-icon {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .claudemd-icon__svg {
+      width: 30px;
+      height: 30px;
+    }
+    .claudemd-icon__page {
+      fill: var(--nbg-surface-2);
+      stroke: var(--nbg-ink-2);
+      stroke-width: 1.25;
+      stroke-linejoin: round;
+    }
+    .claudemd-icon__fold {
+      fill: none;
+      stroke: var(--nbg-ink-2);
+      stroke-width: 1.25;
+      stroke-linejoin: round;
+    }
+    .claudemd-icon__line {
+      stroke: var(--nbg-ink-2);
+      stroke-width: 1;
+      stroke-linecap: round;
+    }
+    .claudemd-icon--accent .claudemd-icon__page {
+      stroke: var(--nbg-accent);
+      fill: color-mix(in srgb, var(--nbg-accent) 10%, var(--nbg-surface));
+    }
+    .claudemd-icon--accent .claudemd-icon__fold,
+    .claudemd-icon--accent .claudemd-icon__line {
+      stroke: var(--nbg-accent);
+    }
+    .claudemd-icon__label {
+      font-family: var(--nbg-ff-mono);
+      font-size: 0.625rem;
+      color: var(--nbg-muted);
+      letter-spacing: 0.02em;
+    }
+    .claudemd-panel__prompt {
+      display: inline-block;
+      padding: 0.3rem 0.65rem;
+      background: var(--nbg-surface-2);
+      border: 1px solid var(--nbg-hairline);
+      border-radius: 999px;
+    }
+    .claudemd-panel__prompt-text {
+      font-family: var(--nbg-ff-mono);
+      font-size: 0.6875rem;
+      color: var(--nbg-ink-2);
+      font-style: italic;
+    }
+    .claudemd-panel__arrow {
+      font-size: 1rem;
+      color: var(--nbg-muted);
+      line-height: 1;
+    }
+    .claudemd-panel__outputs {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-end;
+      justify-content: center;
+      width: 100%;
+      min-height: 70px;
+    }
+    .claudemd-output {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .claudemd-glyph {
+      width: 36px;
+      height: 48px;
+    }
+    .claudemd-glyph__page {
+      fill: var(--nbg-surface);
+      stroke-width: 1.25;
+      stroke-linejoin: round;
+    }
+    .claudemd-glyph__title { stroke-width: 0; }
+    .claudemd-glyph__line {
+      stroke-width: 1;
+      stroke-linecap: round;
+    }
+    .claudemd-glyph--varied .claudemd-glyph__page,
+    .claudemd-glyph--varied .claudemd-glyph__line {
+      stroke: var(--nbg-muted);
+    }
+    .claudemd-glyph--varied .claudemd-glyph__title {
+      fill: var(--nbg-muted);
+    }
+    .claudemd-glyph--consistent .claudemd-glyph__page,
+    .claudemd-glyph--consistent .claudemd-glyph__line {
+      stroke: var(--nbg-accent);
+    }
+    .claudemd-glyph--consistent .claudemd-glyph__title {
+      fill: var(--nbg-accent);
+    }
+    .claudemd-output__label {
+      font-family: var(--nbg-ff-mono);
+      font-size: 0.625rem;
+      color: var(--nbg-muted);
+      letter-spacing: 0.02em;
+    }
+    .claudemd-panel__caption {
+      font-size: 0.8125rem;
+      line-height: 1.4;
+      margin: 0.25rem 0 0 0;
+      font-style: italic;
+    }
+    .claudemd-panel__caption--warn { color: #b8860b; }
+    .claudemd-panel__caption--accent { color: var(--nbg-accent); }
+    .claudemd-figure__caption {
+      margin-top: 1rem;
+      padding-top: 0.875rem;
+      border-top: 1px solid var(--nbg-hairline);
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      color: var(--nbg-ink-2);
+      text-align: center;
+    }
+    .claudemd-figure__caption code {
+      font-family: var(--nbg-ff-mono);
+      font-size: 0.9em;
+      background: var(--nbg-surface-2);
+      padding: 0.1em 0.4em;
+      border-radius: 4px;
+      color: var(--nbg-accent);
     }
   }
 </style>

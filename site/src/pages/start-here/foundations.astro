@@ -760,6 +760,18 @@ function resourceKindTone(kind: Resource['kind']): string {
       color: var(--nbg-ink) !important;
       font-weight: 600 !important;
     }
+    /* Make links unambiguously look like links: accent colour +
+       always-visible underline (don't rely on hover-to-discover). */
+    .foundation-step__body :global(a) {
+      color: var(--nbg-accent) !important;
+      text-decoration: underline !important;
+      text-decoration-thickness: 1px !important;
+      text-underline-offset: 0.2em !important;
+    }
+    .foundation-step__body :global(a:hover),
+    .foundation-step__body :global(a:focus-visible) {
+      text-decoration-thickness: 2px !important;
+    }
 
     /* ─── F2 glass-of-water visual ─────────────────────────────── */
     .glass-figure {

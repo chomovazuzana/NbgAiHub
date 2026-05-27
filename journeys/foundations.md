@@ -11,8 +11,6 @@ deeper_link: "https://anthropic.skilljar.com/claude-code-101"
 ai_summary: Six foundational explainers for anyone who has never used Claude Code before — what an LLM actually is, why context windows matter, what makes an agent different from a chatbot, what Claude Code is, how it differs from ChatGPT, and why we picked it over the alternatives. Read this first if any of those questions feels uncertain.
 ---
 
-You don't need Claude Code to do your job. Plenty of people get along fine without it. The hub exists because *we* find it useful enough to want our colleagues on board — and the fastest way to be useful is to be honest about what it is, what it isn't, and where it fits. This page is the "why," before any of the "how" on Day 1.
-
 Read straight through, or skip to the section that matches the question you're sitting on right now. The order goes concept → product → choice: what the underlying AI is, what it can and can't remember, what changes when you give it tools, what the specific product is, how it relates to its siblings, and why we picked it.
 
 ---
@@ -67,7 +65,7 @@ A context window is measured in *tokens* (think: ~3-4 characters of text per tok
 **Practical implications:**
 - **`/compact`** — summarises the conversation so far, freeing up tokens. Use it between unrelated tasks.
 - **`/clear`** — wipes the context entirely. Cheaper context = better answers. Don't be precious about it.
-- **`CLAUDE.md`** — a file you write at the project root that gets loaded *every session*. The persistent memory, paid for in tokens once per session instead of repeated every turn.
+- **`CLAUDE.md`** — a file you write at the project root that gets loaded *every session*. The persistent memory, paid for in tokens once per session instead of repeated every turn. ([Day 1 → Step 5](/start-here/day-1/#d5) walks through the *why* with a before/after visualisation, and shows what one looks like.)
 - **Skills** — small, scoped instruction bundles loaded on demand, not always. Saves context when not in use.
 
 Trust nothing past the 70% context-fill mark without a review. If you start seeing the model invent things — that's the signal. `/compact` or `/clear` and start fresh.

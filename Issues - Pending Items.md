@@ -10,9 +10,6 @@ Pending items first (most critical at top). Per CLAUDE.md doc-hygiene: each entr
 22. **Real asciinema recording on homepage** (low / asset capture, 2026-05-27 UAT T17 V2).
     A CSS/HTML "terminal preview" via `<TerminalDemo>` now sits in `site/src/pages/index.astro` (`homeDemoFrames`) because asciinema isn't installed and Claude Code can't be run interactively here. **Replace path:** record a 30-60s session with `asciinema rec`, host the JSON cast file, drop in `asciinema-player` and replace the `<TerminalDemo>` slot.
 
-21. **Real annotated terminal screenshots on Day 1 Steps 3 + 4** (low / asset capture, 2026-05-27 UAT T19 V2).
-    `<TerminalDemo>` mocks sit in `site/src/pages/start-here/day-1.astro` (`firstSessionFrames`, `survivalKeysFrames`) for the same reason as #22 — need a real Claude Code session captured. **Replace path:** PNG capture per frame, annotate, swap the `<TerminalDemo>` calls for `<img>` tags + figcaption.
-
 20. **Starlight CSS ships unlayered, beats `@layer nbg.components` in production** (medium / recurring footgun).
     Per CSS spec, unlayered rules beat any `@layer` block regardless of declared order. Same trap also fires from `agentnews-layout.css` (unlayered rules on `.section` + `.wrap`). Round-1 (2026-05-26) patched typography; round-2 (2026-05-27 late) patched layout/spacing on Day 1 + Foundations.
     **Fix path:** wrap Starlight + agentnews CSS imports in `@layer starlight, agentnews;` via Vite/PostCSS plugin (single-source). Until then: `!important` on every losing property, prefer custom class names over `.section`/`.wrap`. Canonical doc: `docs/reference/starlight-cascade-gotcha.md`.
@@ -75,6 +72,7 @@ Pending items first (most critical at top). Per CLAUDE.md doc-hygiene: each entr
 
 One-liners only. Full context in DECISIONS.md or git log.
 
+- **#21** Day 1 TerminalDemo mocks ✓ 2026-05-27 (overnight) — removed entirely during Day 1 content overhaul; no replacement needed. See DECISIONS 2026-05-27 (overnight).
 - **#18** Site `base` env-driven for GH Pages deploy ✓ 2026-05-26 — `PUBLIC_BASE` env + postbuild rewrite + base-aware logo/brand. See DECISIONS 2026-05-26 (afternoon).
 - **#17** `/glossary/` catalog page didn't auto-link cross-references ✓ 2026-05-25 — rewrote `glossary.astro` to use `createMarkdownProcessor({ remarkPlugins })` per entry.
 - **#6** `MarketingShell` no longer double-wraps `StarlightPage` ✓ 2026-05-19 — moved homepage from `content/docs/index.mdx` to `pages/index.astro`.

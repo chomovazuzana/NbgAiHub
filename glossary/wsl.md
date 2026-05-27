@@ -23,7 +23,7 @@ Why the team uses it for Claude Code work on Windows:
 
 WSL 2 is the version everyone uses now. WSL 1 still exists but is mostly historical.
 
-**Installing WSL on a bank Windows laptop:**
+**Installing WSL:**
 
 The happy-path command (Windows 10 build 19041+ or Windows 11, admin rights, internet access) is one line in *PowerShell as Administrator*:
 
@@ -31,12 +31,12 @@ The happy-path command (Windows 10 build 19041+ or Windows 11, admin rights, int
 wsl --install
 ```
 
-This installs WSL 2, enables the virtualization features it needs, and downloads Ubuntu by default. After the reboot it prompts for a Linux username and password.
+This installs WSL 2, enables the virtualization features it needs, and downloads Ubuntu by default. After the reboot it prompts for a Linux username and password. Full Microsoft instructions: [learn.microsoft.com/windows/wsl/install](https://learn.microsoft.com/en-us/windows/wsl/install).
 
-**Common blockers on a locked-down laptop:**
+**Common blockers on a managed laptop:**
 
-- *No admin rights.* The team workaround is to file a request with IT to enable WSL — it is a one-time policy change, not an ongoing exception. While you wait, Git Bash (from Git for Windows) handles basic shell commands.
-- *Virtualization disabled in BIOS.* IT controls this on bank-managed machines. Same request route.
-- *Microsoft Store blocked.* IT has offline WSL installer packages (.msi) that bypass the Store.
+- *No admin rights.* File a request with IT to enable WSL — it is a one-time policy change, not an ongoing exception. While you wait, Git Bash (from [Git for Windows](https://git-scm.com/download/win)) handles basic shell commands.
+- *Virtualization disabled in BIOS.* IT controls this on managed machines. Same request route.
+- *Microsoft Store blocked.* Microsoft ships offline WSL installer packages (`.msi`) that bypass the Store.
 
-Once WSL is installed, every Claude Code session runs *inside* WSL, not in regular PowerShell. The terminal app you launch (Windows Terminal is the cleanest one) lets you pick "Ubuntu" as the profile.
+Once WSL is installed, every Claude Code session runs *inside* WSL, not in regular PowerShell. The terminal app you launch ([Windows Terminal](https://learn.microsoft.com/en-us/windows/terminal/install) is the cleanest one) lets you pick "Ubuntu" as the profile.

@@ -31,6 +31,16 @@
       ]
     },
     {
+      "slug": "bash",
+      "title": "Bash",
+      "audience": "beginner",
+      "topics": [
+        "tooling",
+        "shell",
+        "fundamentals"
+      ]
+    },
+    {
       "slug": "branch",
       "title": "Branch",
       "audience": "beginner",
@@ -46,6 +56,15 @@
       "topics": [
         "llm-strategy",
         "architecture"
+      ]
+    },
+    {
+      "slug": "cd",
+      "title": "cd",
+      "audience": "beginner",
+      "topics": [
+        "shell",
+        "fundamentals"
       ]
     },
     {
@@ -94,12 +113,50 @@
       ]
     },
     {
+      "slug": "completion",
+      "title": "Completion",
+      "audience": "beginner",
+      "topics": [
+        "foundations",
+        "prompting"
+      ]
+    },
+    {
+      "slug": "container",
+      "title": "Container",
+      "audience": "beginner",
+      "topics": [
+        "tooling",
+        "deployment",
+        "infrastructure"
+      ]
+    },
+    {
       "slug": "context-window",
       "title": "Context window",
       "audience": "both",
       "topics": [
         "claude-code",
         "fundamentals"
+      ]
+    },
+    {
+      "slug": "database",
+      "title": "Database",
+      "audience": "beginner",
+      "topics": [
+        "fundamentals",
+        "infrastructure"
+      ]
+    },
+    {
+      "slug": "docker",
+      "title": "Docker",
+      "audience": "beginner",
+      "topics": [
+        "tooling",
+        "deployment",
+        "infrastructure"
       ]
     },
     {
@@ -231,6 +288,16 @@
       ]
     },
     {
+      "slug": "postgres",
+      "title": "Postgres",
+      "audience": "beginner",
+      "topics": [
+        "tooling",
+        "database",
+        "infrastructure"
+      ]
+    },
+    {
       "slug": "prompt",
       "title": "Prompt",
       "audience": "beginner",
@@ -277,6 +344,15 @@
       ]
     },
     {
+      "slug": "shell",
+      "title": "Shell",
+      "audience": "beginner",
+      "topics": [
+        "shell",
+        "fundamentals"
+      ]
+    },
+    {
       "slug": "skill",
       "title": "Skill",
       "audience": "both",
@@ -299,8 +375,8 @@
       "title": "Terminal",
       "audience": "beginner",
       "topics": [
-        "foundations",
-        "tools"
+        "shell",
+        "fundamentals"
       ]
     },
     {
@@ -319,6 +395,16 @@
       "topics": [
         "foundations",
         "agents"
+      ]
+    },
+    {
+      "slug": "wsl",
+      "title": "WSL",
+      "audience": "beginner",
+      "topics": [
+        "shell",
+        "windows",
+        "infrastructure"
       ]
     },
     {

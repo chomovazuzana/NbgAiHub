@@ -3,91 +3,6 @@
   "type": "news",
   "items": [
     {
-      "slug": "9-things-about-claude-i-wish-someone-had-told-me-10-years",
-      "title": "9 things about Claude I wish someone had told me 10 years ago",
-      "audience": "both",
-      "topics": [
-        "workflow",
-        "prompt-engineering",
-        "best-practices"
-      ]
-    },
-    {
-      "slug": "claude-status-update-elevated-errors-on-claude-haiku-4-5-on",
-      "title": "Claude Status Update : Elevated errors on Claude Haiku 4.5 on 2026-05-19T08:30:38.000Z",
-      "audience": "both",
-      "topics": [
-        "platform-news",
-        "outage",
-        "claudehaiku"
-      ]
-    },
-    {
-      "slug": "fast-mode-now-defaults-to-opus-4-7-in-claude-code",
-      "title": "Fast mode now defaults to Opus 4.7 in Claude Code.",
-      "audience": "both",
-      "topics": [
-        "platform-news",
-        "model-selection",
-        "workflow"
-      ]
-    },
-    {
-      "slug": "fastest-way-to-publish-a-claude-artifact-as-a-public-website",
-      "title": "Fastest way to publish a Claude artifact as a public website",
-      "audience": "both",
-      "topics": [
-        "workflow",
-        "artifact-publishing",
-        "claudecode"
-      ]
-    },
-    {
-      "slug": "found-a-cleaner-way-to-give-claude-code-real-browser",
-      "title": "Found a cleaner way to give Claude Code real browser context — some notes",
-      "audience": "advanced",
-      "topics": [
-        "workflow",
-        "integration",
-        "browser-context",
-        "field-report"
-      ]
-    },
-    {
-      "slug": "i-figured-out-why-i-keep-hitting-my-claude-code-session",
-      "title": "I figured out why I keep hitting my Claude Code session limit before lunch. It's not what I thought.",
-      "audience": "advanced",
-      "topics": [
-        "workflow",
-        "session-limits",
-        "optimization",
-        "api-calls",
-        "field-report"
-      ]
-    },
-    {
-      "slug": "nobody-reads-the-readme-anymore-make-claude-draw-you-the",
-      "title": "Nobody reads the README anymore. Make Claude draw you the map instead.",
-      "audience": "both",
-      "topics": [
-        "workflow",
-        "visualization",
-        "planning",
-        "documentation"
-      ]
-    },
-    {
-      "slug": "self-hosted-sandboxes-and-mcp-tunnels-for-claude-managed",
-      "title": "Self-hosted sandboxes and MCP tunnels for Claude Managed Agents are now in public beta.",
-      "audience": "advanced",
-      "topics": [
-        "claudemd",
-        "platform-news",
-        "security",
-        "deployment"
-      ]
-    },
-    {
       "slug": "100-tips-tricks-for-building-your-own-personal-ai-agent",
       "title": "100 Tips & Tricks for Building Your Own Personal AI Agent /LONG POST/",
       "audience": "both",
@@ -563,6 +478,64 @@
         "opus",
         "regression",
         "field-report"
+      ]
+    },
+    {
+      "slug": "claude-in-excel-using-stale-data-from-previous-sessions",
+      "title": "Claude in Excel using stale data from previous sessions, after introduction of chat history.",
+      "audience": "advanced",
+      "topics": [
+        "field-report",
+        "workflow",
+        "excel-integration",
+        "bug",
+        "chat-history"
+      ]
+    },
+    {
+      "slug": "i-built-a-tool-that-measures-whether-a-claude-code-skill",
+      "title": "I built a tool that measures whether a Claude Code skill actually improves output quality, and tested it on Caveman",
+      "audience": "advanced",
+      "topics": [
+        "workflow",
+        "field-report",
+        "skill-evaluation",
+        "benchmarking"
+      ]
+    },
+    {
+      "slug": "launch-hn-minicor-yc-p26-windows-desktop-automations-at",
+      "title": "Launch HN: Minicor (YC P26) – Windows desktop automations at scale",
+      "audience": "advanced",
+      "topics": [
+        "workflow",
+        "mcp",
+        "field-report",
+        "automation",
+        "claudecode"
+      ]
+    },
+    {
+      "slug": "opus-4-7-has-undergone-some-sort-of-change-or-something",
+      "title": "Opus 4.7 has undergone some sort of change, or something else is occuring",
+      "audience": "advanced",
+      "topics": [
+        "field-report",
+        "model-behavior",
+        "performance",
+        "workflow"
+      ]
+    },
+    {
+      "slug": "worksidian-worktrees-obsidian-persistent-parallel-claude",
+      "title": "Worksidian = Worktrees + Obsidian: persistent parallel Claude Code sessions",
+      "audience": "advanced",
+      "topics": [
+        "workflow",
+        "field-report",
+        "setup",
+        "claudecode",
+        "collaboration"
       ]
     }
   ]

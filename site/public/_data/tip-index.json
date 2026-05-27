@@ -22,6 +22,15 @@
       ]
     },
     {
+      "slug": "claudemd-worked-example",
+      "title": "What a real CLAUDE.md looks like (worked example)",
+      "audience": "beginner",
+      "topics": [
+        "context",
+        "fundamentals"
+      ]
+    },
+    {
       "slug": "compact-and-clear",
       "title": "/compact and /clear — context-window discipline",
       "audience": "both",
@@ -40,6 +49,16 @@
       ]
     },
     {
+      "slug": "dangerously-skip-permissions",
+      "title": "`--dangerously-skip-permissions` — what it actually does",
+      "audience": "beginner",
+      "topics": [
+        "survival",
+        "permissions",
+        "fundamentals"
+      ]
+    },
+    {
       "slug": "esc-to-stop",
       "title": "Esc to stop Claude mid-action (the survival key)",
       "audience": "beginner",
@@ -55,6 +74,16 @@
       "topics": [
         "survival",
         "workflow"
+      ]
+    },
+    {
+      "slug": "project-hygiene",
+      "title": "Keep CLAUDE.md clean and your project tidy — why Claude hallucinates without project hygiene",
+      "audience": "beginner",
+      "topics": [
+        "context",
+        "compliance",
+        "fundamentals"
       ]
     },
     {
@@ -124,6 +153,15 @@
       "slug": "prompt-show-dont-describe",
       "title": "Show, don't describe",
       "audience": "both",
+      "topics": [
+        "prompting",
+        "fundamentals"
+      ]
+    },
+    {
+      "slug": "prompting-in-greek",
+      "title": "Prompt in Greek (or any language) — Claude understands",
+      "audience": "beginner",
       "topics": [
         "prompting",
         "fundamentals"

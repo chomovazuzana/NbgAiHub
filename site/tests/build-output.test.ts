@@ -30,24 +30,26 @@ beforeAll(() => {
 describe('Day-1 step segmentation (AC6)', () => {
   const day1Html = join(distDir, 'start-here', 'day-1', 'index.html');
 
-  it('has sequential step sections with IDs step-1..step-N', () => {
+  it('has sequential step sections with IDs d1..dN', () => {
     // Was hardcoded at 6 steps; Day 1 was trimmed to 5 in the 2026-05-25
-    // redesign (step 6 "marketplace" removed per d742ba0 + 571620d). Test
-    // now asserts ≥4 sequential steps without pinning the exact count.
+    // redesign, then rewritten to 6 in the 2026-05-27 redesign. Test
+    // asserts ≥4 sequential steps without pinning the exact count.
+    // Step ID prefix is `d` (not `step-`) per the docs-style layout
+    // landed in ff67a4a (2026-05-27) — `<section id="dN">`.
     expect(existsSync(day1Html), 'start-here/day-1/index.html exists').toBe(true);
     const html = readFileSync(day1Html, 'utf-8');
 
-    const stepMatches = html.match(/<section[^>]+id="step-(\d+)"/g) || [];
+    const stepMatches = html.match(/<section[^>]+id="d(\d+)"/g) || [];
     expect(stepMatches.length, 'Day 1 has at least 4 steps').toBeGreaterThanOrEqual(4);
 
     const stepIds = stepMatches.map((m) => {
-      const match = m.match(/id="(step-\d+)"/);
+      const match = m.match(/id="(d\d+)"/);
       return match ? match[1] : null;
     }).filter((id): id is string => id !== null);
 
     // Steps must be sequential 1..N with no gaps.
-    const expected = stepIds.map((_, idx) => `step-${idx + 1}`);
-    expect(stepIds, 'Step IDs sequential from step-1').toEqual(expected);
+    const expected = stepIds.map((_, idx) => `d${idx + 1}`);
+    expect(stepIds, 'Step IDs sequential from d1').toEqual(expected);
   });
 });
 

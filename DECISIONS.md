@@ -6,6 +6,27 @@ Per CLAUDE.md doc-hygiene: each entry ≤20 lines, structured as Decision (bulle
 
 ---
 
+## 2026-05-27 (overnight) — Day 1 public-safe content overhaul + CLAUDE.md before/after figure + Starlight `article + article` round 3
+
+**Decision:**
+- `journeys/day-1.md` rewritten to 6 ordered steps: Open terminal · Install Claude Code · GitHub account · First session · Write `CLAUDE.md` · Survival keys. All NBG-internal references scrubbed — no @nbg.gr, no clouddevops contact, no procurement-code flow, no hardcoded org/repo. Provider step lists all four Claude Code backends neutrally with placeholder env-var shape for Vertex/Bedrock.
+- Step 4 happy path is now `mkdir ~/claude-playground && claude` (clone-from-GitHub demoted to the alternative); explicit don't-run-`claude`-in-`$HOME` warning added.
+- Step 5 introduces a side-by-side **before/after figure** above the prose (left "Without CLAUDE.md" = three distinct grey report glyphs; right "With CLAUDE.md" = three identical accent-teal glyphs; same `loans.xlsx` + "analyse + report" pill in both). Story below restructured to bullets. Dropped `/claudemd` skill mention + "keep it under two pages" line; added "if it gets bigger, reference other docs". `claude --continue` caveat woven into the "no save button in Claude Code" framing.
+- Mac terminal list reordered: **cmux** (new — purpose-built for AI coding agents, [cmux.com](https://cmux.com/)) → Ghostty → Warp → **iTerm2** (now last). Mac screenshot shortcut spelled exactly as user dictated: `⌘C` capture / `control V` paste.
+- `journeys/foundations.md`: removed the "You don't need Claude Code to do your job" intro paragraph; CLAUDE.md bullet now links to `/start-here/day-1/#d5`.
+- `glossary/wsl.md`: bank-specific framing ("bank Windows laptop" / "bank-managed machines") → generic "managed laptop"; added Microsoft + Git for Windows + Windows Terminal inline links.
+- Body links on both pages (`.day-section__body` + `.foundation-step__body`): explicit `:global(a)` rule — accent colour + always-visible 1px underline (thickens to 2px on hover/focus). Stops links looking like normal text until hover.
+- `site/src/pages/start-here/day-1.astro`: `tocLabels` reordered for the new step order; top-card grid bumped 5 → 6 columns mirroring Foundations' 75rem/48rem/30rem breakpoints; dummy `<TerminalDemo>` blocks + unused frame consts removed (no more "Stylised preview" callouts on Day 1).
+- **Starlight `article + article` gotcha — round 3:** the figure's two `<article>` panels were Y-misaligned by 16px (probe confirmed `marginTop: 16px` on the 2nd panel). Same root cause Foundations already documented on `.foundation-compare__col` (DECISIONS 2026-05-21): Starlight ships an unlayered `article + article` rule injecting `margin-top: 16px` on subsequent siblings. Same fix applied — `margin: 0 !important` on `.claudemd-panel`, with a comment pointing back to Foundations so the pattern is discoverable. Post-fix probe: both panels pixel-identical (`top: 254`, `bottom: 683`, `height: 429`, `marginTop: 0`).
+- `site/tests/build-output.test.ts`: drifted `Day-1 step segmentation` regex fixed — was asserting `id="step-N"`, page emits `id="dN"` since ff67a4a.
+- Closed `Issues - Pending Items.md` #21 (Day 1 TerminalDemo mocks are gone).
+
+**Why:** Day 1 was the most-trafficked page still leaking NBG-internal references (specific repo paths, "bank email", "bank-issued authenticator") — unsafe for the now-public Pages deploy. Rewriting to the 6-step ordered flow + scrubbing the NBG-isms makes the page safe for the live URL. The before/after figure visualises CLAUDE.md's value faster than prose ever could.
+
+**Refs:** current commit. Tests: site 310/310 (1 skipped). Live: <https://chomovazuzana.github.io/NbgAiHub/start-here/day-1/>. Issue #20 (broader `@layer starlight` workaround) still deferred — round 3 is another datapoint for prioritising it.
+
+---
+
 ## 2026-05-27 (late evening) — Day 1 docs-style layout + Starlight cascade hardening, round 2
 
 **Decision:**
