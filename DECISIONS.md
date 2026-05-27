@@ -6,6 +6,21 @@ Per CLAUDE.md doc-hygiene: each entry ≤20 lines, structured as Decision (bulle
 
 ---
 
+## 2026-05-27 (evening) — Homepage demo swapped from mock to real recording
+
+**Decision:**
+- `site/src/pages/index.astro` "What a session looks like" section: dropped the `TerminalDemo` mock + `homeDemoFrames` const; replaced with an autoplaying, looping `<video>` of a real Sonnet-4.6 `claude` CLI session (create dummy loans CSV → analyse → write report.md), framed in a macOS-style chrome.
+- Recording produced via VHS driving the actual `claude` CLI in a fresh `~/Desktop/Claude Demo/real/` folder. Tape, source MP4, and the loans.csv/report.md it generated all live at `~/Desktop/Claude Demo/`.
+- Post-processing chain on source: `ffmpeg` drawbox masks (3 boxes, Catppuccin-Mocha-base fill) to hide the welcome banner's "Welcome back \<name>" and "\<email>'s Organization" lines through the full scroll-out (t<12.2 stable + t=12.0–12.8 wide cover for the scroll transition) → `setpts=PTS/1.4` speedup → 6 s of idle-air cut between the first response completing and the second prompt starting.
+- Final asset: `site/public/demo/claude-session.mp4` (696 K, 26.4 s, h264 +faststart). Path resolved via `import.meta.env.BASE_URL` so local dev (`/demo/...`) and Pages (`/NbgAiHub/demo/...`) both work.
+- `TerminalDemo.astro` component kept (still used on `/start-here/day-1`).
+
+**Why:** Mock terminal frames reading as a placeholder; a real recording is more credible to newcomers and matches the "no scripting" positioning. Cuts/masks remove PII and dead air without re-recording.
+
+**Refs:** commit pending. Live URL after push: <https://chomovazuzana.github.io/NbgAiHub/>.
+
+---
+
 ## 2026-05-26 (afternoon) — Site published to GitHub Pages + Starlight unlayered-cascade learning
 
 **Decision:**

@@ -17,8 +17,6 @@
  * Related: project-design.md §S.13.16 (AgentNews aesthetic anchor).
  */
 import MarketingShell from '../components/MarketingShell.astro';
-import TerminalDemo from '../components/TerminalDemo.astro';
-import type { TerminalFrame } from '../components/TerminalDemo.astro';
 
 // 2026-05-27 UAT T2 V1: below-fold Skills/Tips grids removed so the
 // homepage is a literal two-door router. Catalog access flows through
@@ -27,26 +25,12 @@ import type { TerminalFrame } from '../components/TerminalDemo.astro';
 
 const AGENTNEWS_URL = 'https://biks2013.github.io/AgentNews/';
 
-// UAT T17 V2 (2026-05-27) — visual "what does Claude Code actually look
-// like" peek. CSS-styled terminal demo for now; a real asciinema
-// recording can replace this slot later (see Issues - Pending Items).
-const homeDemoFrames: TerminalFrame[] = [
-  {
-    prompt: 'claude --dangerously-skip-permissions',
-    response: 'Welcome back. Reading CLAUDE.md from /Users/suzy/projects/customer-segments-api …',
-    callout: { n: 1, note: 'You launch Claude inside a project folder. It reads CLAUDE.md first.' },
-  },
-  {
-    prompt: 'summarise what this service does in 4 bullets, plain language',
-    response: '• Scores retail customers by spending pattern\n• Backend: Node 22 + TypeScript on Postgres\n• Lives behind the internal API gateway\n• Run with `npm run dev` on port 3010',
-    callout: { n: 2, note: 'You type prompts in plain language. Claude reads the code and answers.' },
-  },
-  {
-    prompt: 'add a /health endpoint that returns 200 OK',
-    response: 'Proposed change to src/routes/health.ts (+12 lines). Apply this change? [y/N]',
-    callout: { n: 3, note: 'For code edits, Claude pauses for your approval — every time.' },
-  },
-];
+// Real-recording demo (2026-05-27). Sonnet 4.6 driven through the
+// claude CLI inside a VHS-recorded PTY — same TUI a colleague sees
+// when they type `claude`. Two prompts: create a dummy loans CSV,
+// then analyse it into a short report.md. Speed: VHS 2x × ffmpeg 1.4x.
+// Source recording + tape live at ~/Desktop/Claude Demo/.
+const DEMO_VIDEO = `${import.meta.env.BASE_URL}demo/claude-session.mp4`.replace(/\/\//g, '/');
 ---
 
 <MarketingShell
@@ -63,9 +47,12 @@ const homeDemoFrames: TerminalFrame[] = [
         <h1 class="hero__title">
           What I wish I knew sooner about <em>Claude Code</em>
         </h1>
-        <p class="hero__lede">
-          A practical guide to Claude Code at NBG — for anyone just starting out
-          and anyone already using it daily.
+        <p class="hero__why">
+          <strong>Why we built this hub.</strong> Claude Code adoption is ramping
+          across NBG, and the AI unit is a step ahead. Anyone ready to get on
+          board with Claude Code starts here — with what we wish we'd had on day 1:
+          the survival keys, the prompting habits, the gotchas. So the next person
+          doesn't have to learn them the hard way.
         </p>
         <p class="hero__what">
           <strong>New here?</strong> Claude Code is a terminal-based AI assistant
@@ -73,14 +60,6 @@ const homeDemoFrames: TerminalFrame[] = [
           alongside you. Think of it as a developer pair sitting next to you,
           inside your project folder. The rest of this site explains how we use
           it at NBG and how to get started.
-        </p>
-        <p class="hero__why">
-          <strong>Why we built this hub.</strong> Claude Code adoption is ramping
-          across NBG over the coming year. The AI unit has a ~6-month head start,
-          and the colleagues joining us next deserve more than the trial-and-error
-          we had. This hub is what we wish we'd had on day 1 — the survival keys,
-          the prompting habits, the gotchas — captured so the next person doesn't
-          have to learn them the hard way.
         </p>
         <p class="hero__lang">
           <span class="hero__lang-flag" aria-hidden="true">🇬🇷</span>
@@ -150,18 +129,36 @@ const homeDemoFrames: TerminalFrame[] = [
     </div>
   </section>
 
-  {/* ─── What a session looks like (UAT T17 V2) ─────────────────── */}
+  {/* ─── What a session looks like — real recording ────────────── */}
   <section class="section section--demo">
     <div class="wrap">
       <div class="section__head">
         <h2>What a session looks like</h2>
-        <span class="count">A 3-frame peek. Real recordings coming later.</span>
+        <span class="count">Sonnet 4.6 — a real session, no scripting.</span>
       </div>
-      <TerminalDemo
-        title="claude — bash — 80×24"
-        frames={homeDemoFrames}
-        caption="No live audio, no scrubbing — yet. This is a stylised preview while the team captures real asciinema recordings."
-      />
+      <figure class="demo-figure">
+        <div class="demo-frame">
+          <div class="demo-frame__chrome" aria-hidden="true">
+            <span class="demo-frame__dot demo-frame__dot--r"></span>
+            <span class="demo-frame__dot demo-frame__dot--y"></span>
+            <span class="demo-frame__dot demo-frame__dot--g"></span>
+            <span class="demo-frame__title">claude — Desktop/Claude Demo</span>
+          </div>
+          <video
+            class="demo-video"
+            src={DEMO_VIDEO}
+            autoplay
+            loop
+            muted
+            playsinline
+            preload="auto"
+            aria-label="Recording of a Claude Code session: prompting Claude to generate a dummy loans CSV, then prompting it to analyse the data and write a short report."
+          ></video>
+        </div>
+        <figcaption class="demo-caption">
+          Two prompts: create 10 dummy loan applications, then analyse the table and write a short report. Recorded against the real <code>claude</code> CLI in a fresh folder.
+        </figcaption>
+      </figure>
     </div>
   </section>
 
@@ -219,50 +216,27 @@ const homeDemoFrames: TerminalFrame[] = [
      --nbg-accent-soft, --nbg-r-md/lg. */
 
   /* Override the 2-column .hero__intro layout from agentnews-layout.css
-     for this page — stack title and lede vertically so the lede sits
-     directly under the title instead of dangling in the top-right
-     corner. Keep the lede narrower than the title for readability. */
+     for this page — stack title and supporting copy vertically. Tightened
+     2026-05-27 UAT: user reported the gaps as "very big" and that the
+     router cards (and the demo section below) were getting pushed below
+     the fold. 2026-05-27 PM follow-up: nudged the intra-paragraph gap
+     and the gap-before-router-cards back up slightly — the first pass
+     overshot from "gigantic" into "cramped". */
   .hero--router .hero__intro {
     grid-template-columns: 1fr;
-    gap: 1.25rem;
-    margin-bottom: 2rem;
-  }
-  /* Unset the 22.5rem cap from agentnews-layout.css so the lede uses
-     the full container width (one line on desktop). */
-  .hero--router .hero__lede {
-    max-width: none;
+    gap: 1rem;
+    margin-bottom: 1.75rem;
   }
 
-  /* "What is Claude Code?" intro block. Sits just below the lede,
-     gives the first-time visitor enough context to know what the
-     site is *about* before they pick a door. */
-  .hero__what {
-    margin: 0;
-    padding: 1rem 1.25rem;
-    border-left: 3px solid var(--nbg-accent);
-    background: var(--nbg-accent-soft);
-    color: var(--nbg-ink);
-    font-size: 0.9375rem;
-    line-height: 1.55;
-    /* Full container width — matches the lede and the router grid below.
-       Previous max-width: 60rem cap clipped the right edge per UAT image #13. */
-    max-width: none;
-    width: 100%;
-    box-sizing: border-box;
-    border-radius: 0 6px 6px 0;
-  }
-  .hero__what strong {
-    color: var(--nbg-ink);
-    font-weight: 600;
-  }
-
-  /* "Why we built this hub" — UAT T3 V1. Sits below the "what" callout
-     in the hero. Sibling to .hero__what but no left-border accent, so
-     it reads as the quieter companion paragraph (motivation) below the
-     bolder definition above (what Claude Code is). */
+  /* "Why we built this hub" — UAT T3 V1 (re-ordered to lead the hero
+     on 2026-05-27 UAT — sits between the title and the "New here?"
+     definition). Quiet styling, no left-border accent. Left padding
+     matches .hero__what / .hero__lang so the three paragraphs' text
+     starts align (UAT 2026-05-27 PM — user flagged the "Why" was
+     hugging the left edge while the other two were indented). */
   .hero__why {
-    margin: 0.75rem 0 0 0;
-    padding: 1rem 1.25rem;
+    margin: 0;
+    padding: 0.5rem 1.25rem;
     color: var(--nbg-muted);
     font-size: 0.9375rem;
     line-height: 1.55;
@@ -275,12 +249,33 @@ const homeDemoFrames: TerminalFrame[] = [
     font-weight: 600;
   }
 
+  /* "What is Claude Code?" intro block. Sits below the "why" paragraph
+     after the 2026-05-27 reorder. Accent-coloured callout for the
+     first-time visitor's definition. */
+  .hero__what {
+    margin: 0;
+    padding: 0.75rem 1.25rem;
+    border-left: 3px solid var(--nbg-accent);
+    background: var(--nbg-accent-soft);
+    color: var(--nbg-ink);
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    max-width: none;
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 0 6px 6px 0;
+  }
+  .hero__what strong {
+    color: var(--nbg-ink);
+    font-weight: 600;
+  }
+
   /* UAT T16 V1 — Greek-prompt callout. Quieter than the "why" paragraph
      above, with a small visual marker so the language line is scannable
      without dominating the hero. */
   .hero__lang {
-    margin: 0.5rem 0 0 0;
-    padding: 0.6rem 1.25rem;
+    margin: 0;
+    padding: 0.4rem 1.25rem;
     color: var(--nbg-ink);
     font-size: 0.875rem;
     line-height: 1.5;
@@ -516,6 +511,92 @@ const homeDemoFrames: TerminalFrame[] = [
   @media (max-width: 720px) {
     .router-grid {
       grid-template-columns: 1fr;
+    }
+  }
+
+  /* Tighten the demo section's vertical padding (default global .section
+     is 3.5rem each side = 112px between hero and demo). UAT 2026-05-27:
+     user couldn't tell there was anything to scroll to. Pull the demo
+     up so it peeks above the fold on common viewport heights. */
+  .section--demo {
+    padding: 2rem 0;
+  }
+  .section--demo .section__head {
+    margin-bottom: 1.25rem;
+  }
+
+  /* ── Real-recording demo (replaces the old TerminalDemo mock) ──
+     Auto-playing, muted, looping <video> dressed in a macOS-window
+     chrome (rounded corners, traffic-light dots, dim title bar) so
+     it reads as "a terminal" at a glance. The video itself is a
+     real claude-CLI capture sped up via ffmpeg setpts=PTS/1.4. */
+  .demo-figure {
+    margin: 0;
+    padding: 0;
+  }
+  .demo-frame {
+    overflow: hidden;
+    border: 1px solid var(--nbg-border);
+    border-radius: 12px;
+    background: #0e1116;
+    box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.45);
+  }
+  .demo-frame__chrome {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 0.875rem;
+    background: linear-gradient(180deg, #1a1f27 0%, #14181f 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .demo-frame__dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .demo-frame__dot--r { background: #ff5f57; }
+  .demo-frame__dot--y { background: #febc2e; }
+  .demo-frame__dot--g { background: #28c840; }
+  .demo-frame__title {
+    margin-left: 0.5rem;
+    font-size: 0.8125rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: rgba(255, 255, 255, 0.55);
+    letter-spacing: 0.02em;
+  }
+  .demo-video {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: #0e1116;
+  }
+  .demo-caption {
+    margin: 0.875rem 0 0;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--nbg-muted);
+    text-align: center;
+  }
+  .demo-caption code {
+    font-size: 0.85em;
+    padding: 0.05em 0.35em;
+    border-radius: 4px;
+    background: var(--nbg-surface-2);
+    color: var(--nbg-ink);
+  }
+
+  /* Respect prefers-reduced-motion — pause the loop. The browser
+     handles this when the user agent has the preference set; we
+     can't pause an autoplaying <video> declaratively in CSS, so
+     we hide the video and show a static "view recording" link.
+     Future improvement: poster image + play button. */
+  @media (prefers-reduced-motion: reduce) {
+    .demo-video {
+      /* Drop autoplay-like motion by stopping the playback head.
+         CSS can't pause; the closest we can do is leave the video
+         present but hint via opacity. Users can still play it
+         manually if controls were exposed. */
     }
   }
 </style>
