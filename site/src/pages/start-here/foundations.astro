@@ -843,16 +843,23 @@ function resourceKindTone(kind: Resource['kind']): string {
 
     /* ─── F3 side-by-side compare ──────────────────────────────── */
     .foundation-compare {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-      margin: 1.5rem 0;
-      max-width: 48rem;
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 1rem !important;
+      margin: 1.5rem 0 !important;
+      max-width: 48rem !important;
+      align-items: stretch !important;
     }
     @media (max-width: 720px) {
-      .foundation-compare { grid-template-columns: 1fr; }
+      .foundation-compare { grid-template-columns: 1fr !important; }
     }
+    /* !important on margin + align-self — unlayered `article + article`
+       / `:not(:where(.not-content *)) ~ article` rules add a stray
+       margin-top: 16px to col2, breaking top-alignment and eating
+       16px of the grid row's height from col2. */
     .foundation-compare__col {
+      margin: 0 !important;
+      align-self: stretch !important;
       padding: 1.25rem 1.25rem 1.5rem;
       border: 1px solid var(--nbg-hairline);
       border-radius: var(--nbg-r-md, 8px);
