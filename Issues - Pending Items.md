@@ -4,6 +4,15 @@ Pending items first (most critical at top). Per CLAUDE.md doc-hygiene: each entr
 
 ## Pending
 
+23. **Real GitHub-token-page screenshot for SignInModal Step 1** (low / asset capture, 2026-05-27 UAT T13 V1).
+    A CSS/HTML mock of the GitHub token-creation page now sits inside the SignInModal Step 1 (`site/src/components/SignInModal.astro` — `.nbg-signin__preview` block) because this environment can't log into github.com to capture the real page. **Replace path:** capture `github.com/settings/tokens/new?scopes=gist&description=NbgAiHub` while logged in, save as `site/public/brand/github-token-page.png`, swap the mock block for a single `<img>`.
+
+22. **Real asciinema recording on homepage** (low / asset capture, 2026-05-27 UAT T17 V2).
+    A CSS/HTML "terminal preview" via `<TerminalDemo>` now sits in `site/src/pages/index.astro` (`homeDemoFrames`) because asciinema isn't installed and Claude Code can't be run interactively here. **Replace path:** record a 30-60s session with `asciinema rec`, host the JSON cast file, drop in `asciinema-player` and replace the `<TerminalDemo>` slot.
+
+21. **Real annotated terminal screenshots on Day 1 Steps 3 + 4** (low / asset capture, 2026-05-27 UAT T19 V2).
+    `<TerminalDemo>` mocks sit in `site/src/pages/start-here/day-1.astro` (`firstSessionFrames`, `survivalKeysFrames`) for the same reason as #22 — need a real Claude Code session captured. **Replace path:** PNG capture per frame, annotate, swap the `<TerminalDemo>` calls for `<img>` tags + figcaption.
+
 20. **Starlight CSS ships unlayered, beats `@layer nbg.components` in production** (medium / recurring footgun).
     Per CSS spec, unlayered rules beat any `@layer` block regardless of declared order. Vite dev order masked this locally; production CSS bundle reverses it and Starlight wins same-specificity ties.
     **Fix path:** wrap Starlight's CSS imports in `@layer starlight.X { @import ... }` via Vite/PostCSS plugin (single-source). Until then: any local-vs-deploy visual drift is almost certainly this — diagnose with CDP `CSS.getMatchedStylesForNode`, patch with `!important` on the specific property. See DECISIONS 2026-05-26 (afternoon).

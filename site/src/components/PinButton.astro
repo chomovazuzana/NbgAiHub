@@ -221,6 +221,29 @@ const { type, slug, iconOnly = true } = Astro.props;
     return { type, slug };
   }
 
+  // UAT T10 V1 — fire-and-forget toast confirmation. Title is read from
+  // the nearest listing-row title node when available so the message says
+  // *which* item was just pinned; falls back to the generic type label.
+  function emitToast(btn: HTMLButtonElement, pinned: boolean): void {
+    const row = btn.closest('.listing-row, [data-pin-context]');
+    const titleEl = row?.querySelector(
+      '.listing-row__title, [data-pin-title]',
+    );
+    const itemTitle = titleEl?.textContent?.trim() || btn.dataset.pinType || 'item';
+    const verb = pinned ? 'Pinned' : 'Unpinned';
+    const detail = pinned
+      ? {
+          title: `${verb} "${itemTitle}"`,
+          action: { label: 'View pins', href: '/my-pins/' },
+        }
+      : { title: `${verb} "${itemTitle}"` };
+    try {
+      document.dispatchEvent(new CustomEvent('nbgaihub:toast', { detail }));
+    } catch (_) {
+      /* never throw from a side-effect */
+    }
+  }
+
   function onSignedOutClick(event: MouseEvent): void {
     // Don't propagate to the parent <a> (some rows may wrap titles in links)
     event.preventDefault();
@@ -272,6 +295,10 @@ const { type, slug, iconOnly = true } = Astro.props;
         cache.document = updated;
         btn.disabled = false;
         setSignedInState(btn, isPinned(updated, meta.type, meta.slug));
+        // UAT T10 V1 — confirm visibly. The single most-common pin
+        // complaint ("I pinned, where is it?") is best answered with an
+        // immediate toast plus a one-click path to /my-pins/.
+        emitToast(btn, nextPinned);
       } catch (err) {
         setSignedInState(btn, currentlyPinned);
         btn.disabled = false;

@@ -2,25 +2,27 @@
 type: glossary
 title: Terminal
 audience: beginner
-topics: [foundations, tools]
+topics: [shell, fundamentals]
 internal: false
-authored: "2026-05-25"
-last_reviewed: "2026-05-25"
+authored: "2026-05-27"
+last_reviewed: "2026-05-27"
 external_link: null
 deeper_link: null
-ai_summary: A terminal is the text window where you type commands and read their output. On Mac it's Terminal.app or iTerm2; on Windows it's Windows Terminal or PowerShell; on Linux any of dozens. Underneath each one runs a shell (bash, zsh, fish) that actually interprets what you type. Claude Code lives here — you launch it by typing `claude` in a terminal inside your project folder.
-tldr: "The plain text window where you type commands instead of clicking. Claude Code lives here — you start it by typing claude in a project folder."
-aliases: ["terminals"]
+ai_summary: The window where you type commands instead of clicking. Claude Code runs inside one — your prompt, Claude's output, and any commands it runs all live here.
+tldr: "The text-only window where you type commands instead of clicking icons. Claude Code lives inside a terminal — that is where you type prompts and read responses."
+aliases: ["terminals", "terminal window", "terminal app"]
 ---
 
-A **terminal** is the text window where you type commands. On Mac it's `Terminal.app` (built in) or `iTerm2` (the popular replacement). On Windows it's `Windows Terminal` or `PowerShell`. On Linux it's whatever your distro ships. They all do the same job: give you a place to type, and show you what the computer typed back.
+A terminal is the window where you type commands instead of clicking icons. It is the oldest interface in computing and where developers and Claude Code do most of their work.
 
-Underneath every terminal runs a *shell* — bash, zsh, fish, PowerShell — the program that actually reads your commands, runs them, and prints the output. The terminal is the window; the shell is the brain.
+On macOS, the default is **Terminal.app** (Applications then Utilities then Terminal). Other popular ones: cmux, Ghostty, iTerm2, Warp. On Windows, your terminal lives inside WSL by default. On Linux, you have already used one.
 
-For Claude Code purposes you only need to know three things:
+What you see inside a terminal:
 
-1. Open a terminal.
-2. `cd` into the folder of the project you want to work on.
-3. Type `claude` and hit return.
+- A **prompt** — usually ending in a dollar sign — waiting for you to type.
+- The **commands you type** — cd, ls, git pull, claude, and so on.
+- The **output** that those commands print back.
 
-That's the door in. Everything Claude Code does — reading your files, running tests, editing code — happens from inside that terminal session. If someone says "open a terminal" or "drop into the shell" or "run it on the command line," they all mean the same thing: this window.
+Claude Code runs inside a terminal. When you type claude --dangerously-skip-permissions, you are starting a session that takes over the terminal until you press Esc enough times or quit. The terminal is not a separate app from Claude — Claude is running inside the terminal you opened.
+
+The terminal is also where Bash (or another shell) interprets what you type — see the shell entry for the distinction.

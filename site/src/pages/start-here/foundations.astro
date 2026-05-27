@@ -13,11 +13,16 @@
  *
  * Related: docs/refined-requests/beginner-foundations.md.
  */
-import { getEntry } from 'astro:content';
+import { getEntry, getCollection } from 'astro:content';
 import { createMarkdownProcessor } from '@astrojs/markdown-remark';
 import MarketingShell from '../../components/MarketingShell.astro';
 import remarkGlossaryLink from '../../plugins/remark-glossary-link.ts';
 import { linkGlossaryTerms } from '../../lib/glossary-link-string';
+
+// UAT T15 V2 — read the glossary collection length at build time so
+// foundations + day-1 never drift apart again. Previously a hardcoded
+// "Thirty-six" / "Thirty-four" pair caused a visible inconsistency.
+const glossaryCount = (await getCollection('glossary')).length;
 
 const entry = await getEntry('journeys', 'foundations');
 if (!entry) {
@@ -221,8 +226,20 @@ function resourceKindTone(kind: Resource['kind']): string {
     </section>
   )}
 
+  {/* UAT T1 V2 (2026-05-27) — six steps render as default-collapsed
+      <details> accordions. Step 1 opens by default; readers see the full
+      six-section skeleton at a glance and choose which to expand, instead
+      of facing one wall of long-form prose. The expand-all toggle below
+      gives the linear-reader audience a one-click escape hatch. */}
+  <div class="wrap" style="display:flex; justify-content:flex-end; gap:0.75rem; padding-block: 1rem 0;">
+    <button type="button" class="foundation-toggle-all" data-foundation-expand-all>
+      Expand all
+    </button>
+  </div>
+
   {renderedSteps.map((step) => {
     const stepResources = resources.filter((r) => r.step === step.n);
+    const isFirst = step.n === 1;
     return (
       <section
         class="section"
@@ -231,49 +248,87 @@ function resourceKindTone(kind: Resource['kind']): string {
         aria-label={`Foundation ${step.n}: ${step.title}`}
       >
         <div class="wrap">
-          <div class="section__head">
-            <h2>F{step.n} / {renderedSteps.length}</h2>
-            <span class="count">{step.title}</span>
-          </div>
-
-          <div class="foundation-step">
-            <h3 class="foundation-step__title">{step.title}</h3>
-            <div class="foundation-step__body sl-markdown-content" set:html={step.html} />
-          </div>
-
-          {stepResources.length > 0 && (
-            <div class="foundation-resources">
-              <div class="foundation-resources__head">
-                <span class="eyebrow eyebrow--accent">Watch / read</span>
-                <span class="count">{stepResources.length} curated</span>
+          <details class="foundation-details" open={isFirst}>
+            <summary class="foundation-details__summary">
+              <div class="section__head foundation-details__head">
+                <h2>F{step.n} / {renderedSteps.length}</h2>
+                <span class="count">{step.title}</span>
               </div>
-              <div class="grid-3">
-                {stepResources.map((r) => (
-                  <article class="card card--text">
-                    <div class="card__body">
-                      <div class="card__meta">
-                        <span class={`tag ${resourceKindTone(r.kind)}`}>{resourceKindLabel(r.kind)}</span>
-                        {r.duration && <span class="external-host">{r.duration}</span>}
-                      </div>
-                      <h4 class="card__title">
-                        <a href={r.url} target="_blank" rel="noopener noreferrer">
-                          {r.title}
-                        </a>
-                      </h4>
-                      <p class="card__summary"><strong>{r.author}</strong> — {r.why}</p>
-                      <a class="feature__cta" href={r.url} target="_blank" rel="noopener noreferrer">
-                        Open →
-                      </a>
-                    </div>
-                  </article>
-                ))}
-              </div>
+              <span class="foundation-details__chevron" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </span>
+            </summary>
+
+            <div class="foundation-step">
+              <h3 class="foundation-step__title">{step.title}</h3>
+              <div class="foundation-step__body sl-markdown-content" set:html={step.html} />
             </div>
-          )}
+
+            {stepResources.length > 0 && (
+              <div class="foundation-resources">
+                <div class="foundation-resources__head">
+                  <span class="eyebrow eyebrow--accent">Watch / read</span>
+                  <span class="count">{stepResources.length} curated</span>
+                </div>
+                <div class="grid-3">
+                  {stepResources.map((r) => (
+                    <article class="card card--text">
+                      <div class="card__body">
+                        <div class="card__meta">
+                          <span class={`tag ${resourceKindTone(r.kind)}`}>{resourceKindLabel(r.kind)}</span>
+                          {r.duration && <span class="external-host">{r.duration}</span>}
+                        </div>
+                        <h4 class="card__title">
+                          <a href={r.url} target="_blank" rel="noopener noreferrer">
+                            {r.title}
+                          </a>
+                        </h4>
+                        <p class="card__summary"><strong>{r.author}</strong> — {r.why}</p>
+                        <a class="feature__cta" href={r.url} target="_blank" rel="noopener noreferrer">
+                          Open →
+                        </a>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            )}
+          </details>
         </div>
       </section>
     );
   })}
+
+  <script is:inline>
+    (function () {
+      const btn = document.querySelector('[data-foundation-expand-all]');
+      if (!btn) return;
+      const allDetails = Array.from(
+        document.querySelectorAll('.foundation-details'),
+      );
+      function isAllOpen() {
+        return allDetails.every(function (d) {
+          return d.open;
+        });
+      }
+      function update() {
+        btn.textContent = isAllOpen() ? 'Collapse all' : 'Expand all';
+      }
+      btn.addEventListener('click', function () {
+        const target = !isAllOpen();
+        allDetails.forEach(function (d) {
+          d.open = target;
+        });
+        update();
+      });
+      allDetails.forEach(function (d) {
+        d.addEventListener('toggle', update);
+      });
+      update();
+    })();
+  </script>
 
   <section class="section" id="next">
     <div class="wrap">
@@ -292,7 +347,7 @@ function resourceKindTone(kind: Resource['kind']): string {
           <div class="card__body">
             <div class="card__meta"><span class="eyebrow eyebrow--accent">Glossary</span></div>
             <h3 class="card__title"><a href="/glossary/">Look up terms</a></h3>
-            <p class="card__summary" set:html={linkGlossaryTerms("Thirty-six terms in plain English — what they mean, when they matter. Use it as a reference, not a reading list.")} />
+            <p class="card__summary" set:html={linkGlossaryTerms(`${glossaryCount} terms in plain English — what they mean, when they matter. Use it as a reference, not a reading list.`)} />
           </div>
         </article>
       </div>
@@ -313,6 +368,75 @@ function resourceKindTone(kind: Resource['kind']): string {
     .foundation-step {
       max-width: 56rem;
       scroll-margin-top: 5rem;
+    }
+
+    /* UAT T1 V2 — accordion chrome. Steps render inside <details> so the
+       reader sees the whole six-section skeleton at a glance and chooses
+       which to expand. */
+    .foundation-details {
+      border-top: 1px solid var(--nbg-hairline);
+      padding-block: 0.75rem;
+    }
+    .foundation-details > .foundation-details__summary {
+      list-style: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding-block: 0.25rem;
+    }
+    .foundation-details > .foundation-details__summary::-webkit-details-marker {
+      display: none;
+    }
+    .foundation-details__head {
+      flex: 1;
+      margin: 0;
+    }
+    .foundation-details__chevron {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      color: var(--nbg-muted);
+      background: transparent;
+      transition: transform 200ms ease, background 200ms ease, color 200ms ease;
+    }
+    .foundation-details[open] .foundation-details__chevron {
+      transform: rotate(180deg);
+      color: var(--nbg-accent);
+    }
+    .foundation-details:hover .foundation-details__chevron {
+      background: var(--nbg-surface-2);
+      color: var(--nbg-ink);
+    }
+    .foundation-details[open] > .foundation-step,
+    .foundation-details[open] > .foundation-resources {
+      margin-top: 1.25rem;
+    }
+    .foundation-toggle-all {
+      padding: 0.5rem 0.875rem;
+      font-family: var(--nbg-type-body);
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--nbg-ink);
+      background: var(--nbg-surface);
+      border: 1px solid var(--nbg-border);
+      border-radius: var(--nbg-r-md, 8px);
+      cursor: pointer;
+      transition: background 120ms ease, border-color 120ms ease;
+    }
+    .foundation-toggle-all:hover {
+      background: var(--nbg-surface-2);
+      border-color: var(--nbg-accent);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .foundation-details__chevron {
+        transition: none;
+      }
     }
     .foundation-step__title {
       font-family: var(--nbg-ff-serif);

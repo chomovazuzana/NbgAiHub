@@ -20,6 +20,7 @@ import { getCollection } from 'astro:content';
 import type { CollectionEntry } from 'astro:content';
 import MarketingShell from '../components/MarketingShell.astro';
 import AudienceFilter from '../components/AudienceFilter.astro';
+import TopicFilter from '../components/TopicFilter.astro';
 import PinButton from '../components/PinButton.astro';
 import { linkGlossaryTerms } from '../lib/glossary-link-string';
 import '../styles/listing-rows.css';
@@ -27,6 +28,14 @@ import '../styles/listing-rows.css';
 type Tip = CollectionEntry<'tips'>;
 
 const all = await getCollection('tips');
+
+// UAT T8 V1 — distinct topic values across the tips collection. We
+// exclude very-generic ones (the cluster labels themselves and the
+// always-on "fundamentals") so the chip row stays scannable.
+const TOPIC_EXCLUDE = new Set(['fundamentals']);
+const allTopics = Array.from(
+  new Set(all.flatMap((t) => t.data.topics).filter((t) => !TOPIC_EXCLUDE.has(t))),
+).sort();
 
 const CLUSTERS: Array<{ key: string; label: string; blurb: string; match: (t: Tip) => boolean }> = [
   {
@@ -91,6 +100,7 @@ function audienceTooltip(a: string): string {
       </div>
       <div class="hero__filter">
         <AudienceFilter scope=".listing-row[data-audience]" />
+        <TopicFilter topics={allTopics} scope=".listing-row[data-topics]" />
       </div>
     </div>
   </section>
@@ -112,6 +122,7 @@ function audienceTooltip(a: string): string {
                   id={`tip-${tip.id}`}
                   class="listing-row"
                   data-audience={tip.data.audience}
+                  data-topics={tip.data.topics.join(',')}
                 >
                   <div class="listing-row__main">
                     <p class="listing-row__eyebrow">
@@ -154,6 +165,7 @@ function audienceTooltip(a: string): string {
                 id={`tip-${tip.id}`}
                 class="listing-row"
                 data-audience={tip.data.audience}
+                data-topics={tip.data.topics.join(',')}
               >
                 <div class="listing-row__main">
                   <p class="listing-row__eyebrow">Tip <span class="listing-row__eyebrow-sep">·</span> Other</p>

@@ -97,13 +97,21 @@ const base = import.meta.env.BASE_URL;
   >
     <div class="nbg-topnav__inner">
       <a class="nbg-topnav__brand" href={base} aria-label="NBG AI Hub home">
+        {/* UAT T20 V1 (2026-05-27): both logos use `loading="eager"` and
+            `decoding="sync"` so the visible wordmark paints with the rest of
+            the header chrome, not on a deferred decode tick. The inline
+            theme-attribute script in overrides/ThemeProvider.astro already
+            sets `data-theme` synchronously in <head> so the CSS rule that
+            hides the non-active variant applies before first paint. */}
         <img
           class="nbg-topnav__logo nbg-topnav__logo--light"
           src={`${base}brand/nbg-wordmark-blue.png`}
           alt=""
           width="1338"
           height="302"
-          decoding="async"
+          loading="eager"
+          decoding="sync"
+          fetchpriority="high"
         />
         <img
           class="nbg-topnav__logo nbg-topnav__logo--dark"
@@ -111,7 +119,9 @@ const base = import.meta.env.BASE_URL;
           alt=""
           width="1338"
           height="302"
-          decoding="async"
+          loading="eager"
+          decoding="sync"
+          fetchpriority="high"
         />
         <span class="nbg-topnav__brand-text">NBG AI Hub</span>
       </a>

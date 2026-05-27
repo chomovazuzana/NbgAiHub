@@ -16,6 +16,8 @@ origin: internal
 category: workflow
 status: active
 maintainer: "@nbg-ai-team"
+time_saved: "~half a day per feature-sized request"
+worked_scenario: "A colleague needed to add a new bank-data export endpoint, including tests and a small UI panel. Without `/team`: a day of switching between spec, plan, code, review, and integration. With `/team`: one prompt, one ten-phase run, one review pass at the end. The colleague was reading the AC report at lunchtime."
 ---
 
 `/team` is the team's flagship skill for delivering an end-to-end change in one sitting. You give it a request; it runs through ten phases (refine → scan → investigate → plan → design → implement → review → validate deps → build tests → integrate-verify) and reports back with an AC-by-AC verdict.

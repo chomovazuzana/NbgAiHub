@@ -1,0 +1,196 @@
+---
+/**
+ * Toast.astro — Lightweight transient notification surface.
+ *
+ * UAT T10 V1 (2026-05-27). The colleague's "my pins don't work" complaint
+ * is most likely an "did the click do anything?" confusion, not a real
+ * code bug. A bottom-right toast on successful pin/unpin closes that loop
+ * cheaply: action → confirmation → path to verify.
+ *
+ * Contract: any script can dispatch a `CustomEvent` named
+ * `nbgaihub:toast` with `detail: { title, action?: { label, href } }`.
+ * This component renders a single live region near the bottom-right of
+ * the viewport and pushes new toasts onto it; each one auto-dismisses
+ * after 5s. Click anywhere on a toast (other than the action link) to
+ * dismiss early.
+ *
+ * Mounted once per page via MarketingShell — no per-page wiring needed.
+ */
+---
+
+<div
+  class="nbg-toast-root"
+  data-nbg-toast-root
+  aria-live="polite"
+  aria-atomic="false"
+  role="region"
+  aria-label="Notifications"
+></div>
+
+<style>
+  @layer nbg.components {
+    .nbg-toast-root {
+      position: fixed;
+      bottom: 1.25rem;
+      right: 1.25rem;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      pointer-events: none;
+      max-width: min(22rem, calc(100vw - 2.5rem));
+    }
+
+    .nbg-toast {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      background: var(--nbg-ink, #1a2330);
+      color: #ffffff;
+      box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.35);
+      pointer-events: auto;
+      cursor: pointer;
+      transition:
+        transform 200ms ease,
+        opacity 200ms ease;
+      transform: translateY(8px);
+      opacity: 0;
+    }
+    .nbg-toast[data-show='true'] {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    .nbg-toast[data-leaving='true'] {
+      transform: translateY(8px);
+      opacity: 0;
+    }
+
+    .nbg-toast__icon {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      color: var(--nbg-accent, #0a8a7d);
+    }
+
+    .nbg-toast__body {
+      flex: 1;
+      font-size: 0.875rem;
+      line-height: 1.3;
+    }
+
+    .nbg-toast__action {
+      flex-shrink: 0;
+      padding: 0.25rem 0.625rem;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      text-decoration: none;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      transition: background 120ms ease;
+    }
+    .nbg-toast__action:hover {
+      background: rgba(255, 255, 255, 0.22);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .nbg-toast {
+        transition: none;
+      }
+    }
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    const ROOT_SEL = '[data-nbg-toast-root]';
+    const DURATION_MS = 5000;
+    const ANIM_MS = 220;
+
+    function makeIcon() {
+      const ns = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(ns, 'svg');
+      svg.setAttribute('width', '20');
+      svg.setAttribute('height', '20');
+      svg.setAttribute('viewBox', '0 0 24 24');
+      svg.setAttribute('fill', 'none');
+      svg.setAttribute('stroke', 'currentColor');
+      svg.setAttribute('stroke-width', '2');
+      svg.setAttribute('stroke-linecap', 'round');
+      svg.setAttribute('stroke-linejoin', 'round');
+      svg.setAttribute('aria-hidden', 'true');
+      const path = document.createElementNS(ns, 'polyline');
+      path.setAttribute('points', '20 6 9 17 4 12');
+      svg.appendChild(path);
+      return svg;
+    }
+
+    function dismiss(el) {
+      if (!el || el.dataset.leaving === 'true') return;
+      el.dataset.leaving = 'true';
+      window.setTimeout(function () {
+        if (el.parentNode) el.parentNode.removeChild(el);
+      }, ANIM_MS);
+    }
+
+    function show(detail) {
+      const root = document.querySelector(ROOT_SEL);
+      if (!root) return;
+      const title = (detail && detail.title) || '';
+      if (!title) return;
+      const action = detail && detail.action;
+
+      const toast = document.createElement('div');
+      toast.className = 'nbg-toast';
+      toast.setAttribute('role', 'status');
+
+      const icon = document.createElement('span');
+      icon.className = 'nbg-toast__icon';
+      icon.appendChild(makeIcon());
+      toast.appendChild(icon);
+
+      const body = document.createElement('span');
+      body.className = 'nbg-toast__body';
+      body.textContent = title;
+      toast.appendChild(body);
+
+      if (action && action.label && action.href) {
+        const a = document.createElement('a');
+        a.className = 'nbg-toast__action';
+        a.textContent = action.label;
+        a.href = action.href;
+        a.addEventListener('click', function (e) {
+          e.stopPropagation();
+        });
+        toast.appendChild(a);
+      }
+
+      toast.addEventListener('click', function () {
+        dismiss(toast);
+      });
+
+      root.appendChild(toast);
+      // Force a frame so the entrance transition runs.
+      requestAnimationFrame(function () {
+        toast.dataset.show = 'true';
+      });
+
+      window.setTimeout(function () {
+        dismiss(toast);
+      }, DURATION_MS);
+    }
+
+    document.addEventListener('nbgaihub:toast', function (e) {
+      try {
+        show(e && e.detail);
+      } catch (_) {
+        /* ignore — toast must never throw into the host page */
+      }
+    });
+  })();
+</script>

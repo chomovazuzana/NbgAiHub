@@ -1,0 +1,216 @@
+---
+/**
+ * TopicFilter.astro — Multi-select chip filter for `topics` frontmatter.
+ *
+ * UAT T8 V1 (2026-05-27). Audience filter answered "is this for me?";
+ * topic filter answers "which slice of the collection do I want?".
+ *
+ * Contract:
+ *   - Renders one chip per distinct topic passed in via the `topics` prop.
+ *   - Multi-select: clicking a chip toggles its `[aria-pressed]` state.
+ *   - Empty selection = show everything (matches the AudienceFilter "all"
+ *     default).
+ *   - Each row in `scope` MUST carry a `data-topics` attribute that is a
+ *     comma-joined list of topic strings.
+ *   - Filter logic ANDs with the audience filter via a separate
+ *     `topic-hidden` class (audience-filter uses `audience-hidden`).
+ *   - Per-visit only — no localStorage persistence (matches the recent
+ *     decision on AudienceFilter).
+ */
+interface Props {
+  /** Distinct topic values across the collection. */
+  topics: string[];
+  /** CSS selector that resolves to the rows to be filtered. */
+  scope: string;
+}
+
+const { topics, scope } = Astro.props;
+
+// Stable display order — alphabetical, capitalised for the chip label.
+const ordered = [...new Set(topics)].sort();
+
+function display(t: string): string {
+  if (t.length === 0) return t;
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+---
+
+{ordered.length > 0 && (
+  <form class="topic-filter not-content" data-scope={scope} aria-label="Topic filter">
+    <span class="topic-filter__label">Filter by topic</span>
+    <div class="topic-filter__group" role="group">
+      {ordered.map((topic) => (
+        <button
+          type="button"
+          class="topic-filter__chip"
+          data-topic={topic}
+          aria-pressed="false"
+        >
+          {display(topic)}
+        </button>
+      ))}
+      <button
+        type="button"
+        class="topic-filter__clear"
+        data-topic-clear
+        hidden
+      >
+        Clear
+      </button>
+    </div>
+  </form>
+)}
+
+<style>
+  @layer nbg.components {
+    .topic-filter {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--nbg-sp-3);
+      margin-block-start: var(--nbg-sp-3);
+      padding: var(--nbg-sp-2) var(--nbg-sp-3);
+      background: var(--nbg-color-bg-surface);
+      border: 1px solid var(--nbg-color-border-subtle);
+      border-radius: var(--nbg-r-md);
+    }
+    .topic-filter__label {
+      font-family: var(--nbg-type-mono);
+      font-size: var(--nbg-fs-xs);
+      font-weight: var(--nbg-fw-medium);
+      letter-spacing: var(--nbg-ls-wide);
+      text-transform: uppercase;
+      color: var(--nbg-color-fg-muted);
+    }
+    .topic-filter__group {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: var(--nbg-sp-1);
+    }
+    .topic-filter__chip {
+      padding: 0.35rem 0.8rem;
+      font-family: var(--nbg-type-body);
+      font-size: var(--nbg-fs-sm);
+      font-weight: var(--nbg-fw-medium);
+      line-height: 1.3;
+      color: var(--nbg-color-fg-secondary);
+      background: var(--nbg-color-bg-page);
+      border: 1px solid var(--nbg-color-border-subtle);
+      border-radius: var(--nbg-r-pill);
+      cursor: pointer;
+      transition:
+        background-color var(--nbg-dur-fast) var(--nbg-ease-out),
+        color var(--nbg-dur-fast) var(--nbg-ease-out),
+        border-color var(--nbg-dur-fast) var(--nbg-ease-out);
+      user-select: none;
+    }
+    .topic-filter__chip:hover {
+      color: var(--nbg-color-fg-primary);
+      background: var(--nbg-color-bg-surface-hover);
+    }
+    .topic-filter__chip:focus-visible {
+      outline: none;
+      box-shadow: var(--nbg-sh-focus-ring);
+    }
+    .topic-filter__chip[aria-pressed='true'] {
+      color: #ffffff;
+      background: var(--nbg-accent, #007a8a);
+      border-color: var(--nbg-accent, #007a8a);
+    }
+    .topic-filter__clear {
+      padding: 0.35rem 0.7rem;
+      font-family: var(--nbg-type-body);
+      font-size: var(--nbg-fs-sm);
+      font-weight: var(--nbg-fw-medium);
+      color: var(--nbg-color-fg-muted);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .topic-filter__clear:hover {
+      color: var(--nbg-color-fg-primary);
+    }
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    function init() {
+      const forms = document.querySelectorAll('.topic-filter');
+      if (forms.length === 0) return;
+
+      forms.forEach(function (form) {
+        const scope = form.getAttribute('data-scope') || '[data-topics]';
+        const chips = form.querySelectorAll('.topic-filter__chip');
+        const clearBtn = form.querySelector('[data-topic-clear]');
+
+        function selectedTopics() {
+          const out = [];
+          chips.forEach(function (c) {
+            if (c.getAttribute('aria-pressed') === 'true') {
+              const t = c.getAttribute('data-topic');
+              if (t) out.push(t);
+            }
+          });
+          return out;
+        }
+
+        function apply() {
+          const selected = selectedTopics();
+          if (clearBtn) clearBtn.hidden = selected.length === 0;
+          document.querySelectorAll(scope).forEach(function (el) {
+            // Each row's data-topics is a comma-joined list emitted by the
+            // listing-page template. Empty = no topics; matches only when
+            // the filter is empty.
+            const raw = el.getAttribute('data-topics') || '';
+            const rowTopics = raw
+              .split(',')
+              .map(function (t) {
+                return t.trim().toLowerCase();
+              })
+              .filter(Boolean);
+            let visible;
+            if (selected.length === 0) {
+              visible = true;
+            } else {
+              // OR across selected chips — row is visible if it carries
+              // any selected topic. Matches the "show me Prompting OR
+              // Survival" mental model.
+              visible = selected.some(function (s) {
+                return rowTopics.indexOf(s.toLowerCase()) !== -1;
+              });
+            }
+            el.classList.toggle('topic-hidden', !visible);
+          });
+        }
+
+        chips.forEach(function (chip) {
+          chip.addEventListener('click', function () {
+            const current = chip.getAttribute('aria-pressed') === 'true';
+            chip.setAttribute('aria-pressed', current ? 'false' : 'true');
+            apply();
+          });
+        });
+
+        if (clearBtn) {
+          clearBtn.addEventListener('click', function () {
+            chips.forEach(function (c) {
+              c.setAttribute('aria-pressed', 'false');
+            });
+            apply();
+          });
+        }
+
+        apply();
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+</script>

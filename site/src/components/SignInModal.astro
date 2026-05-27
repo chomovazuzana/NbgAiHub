@@ -55,6 +55,53 @@
           <p class="nbg-signin__step-hint">
             Scope: <code>gist</code> only. Nothing else. Takes 30 seconds.
           </p>
+
+          {/* UAT T13 V1 (2026-05-27) — inline visual cue of the GitHub token
+              page. Recognition over recall: the reader sees what's behind the
+              deeplink before they leave the hub. Built as a static
+              CSS/HTML mock for now; a real captured screenshot can replace
+              it later (see Issues - Pending Items). */}
+          <figure class="nbg-signin__preview" aria-hidden="true">
+            <div class="nbg-signin__preview-bar">
+              <span class="nbg-signin__preview-dot"></span>
+              <span class="nbg-signin__preview-dot"></span>
+              <span class="nbg-signin__preview-dot"></span>
+              <span class="nbg-signin__preview-url">github.com/settings/tokens/new</span>
+            </div>
+            <div class="nbg-signin__preview-body">
+              <p class="nbg-signin__preview-title">New personal access token</p>
+              <div class="nbg-signin__preview-field">
+                <label>Note</label>
+                <div class="nbg-signin__preview-input nbg-signin__preview-input--filled">NbgAiHub</div>
+                <span class="nbg-signin__preview-callout">1</span>
+              </div>
+              <div class="nbg-signin__preview-field">
+                <label>Expiration</label>
+                <div class="nbg-signin__preview-input">your choice — 30 days is a good default</div>
+              </div>
+              <div class="nbg-signin__preview-field">
+                <label>Select scopes</label>
+                <div class="nbg-signin__preview-checks">
+                  <span class="nbg-signin__preview-check nbg-signin__preview-check--on">
+                    <span class="nbg-signin__preview-check-mark"></span>
+                    gist
+                  </span>
+                  <span class="nbg-signin__preview-callout">2</span>
+                  <span class="nbg-signin__preview-check">repo</span>
+                  <span class="nbg-signin__preview-check">workflow</span>
+                  <span class="nbg-signin__preview-check">…</span>
+                </div>
+              </div>
+              <div class="nbg-signin__preview-cta">
+                <span class="nbg-signin__preview-btn">Generate token</span>
+                <span class="nbg-signin__preview-callout">3</span>
+              </div>
+            </div>
+            <figcaption class="nbg-signin__preview-caption">
+              <strong>1</strong> Name it <code>NbgAiHub</code>. <strong>2</strong> Tick <code>gist</code> only. <strong>3</strong> Click Generate, copy the token.
+            </figcaption>
+          </figure>
+
           <a
             class="nbg-signin__deeplink"
             href="https://github.com/settings/tokens/new?scopes=gist&description=NbgAiHub"
@@ -328,6 +375,169 @@
     .nbg-signin__deeplink:focus-visible {
       outline: none;
       box-shadow: var(--nbg-sh-focus-ring);
+    }
+
+    /* UAT T13 V1 — inline visual cue of the GitHub token-creation page.
+       A CSS mock for now; can be swapped for a real captured screenshot
+       once an operator (or someone logged into github.com) captures one. */
+    .nbg-signin__preview {
+      margin: 0.85rem 0;
+      border: 1px solid var(--nbg-border, #dce3eb);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--nbg-surface, #ffffff);
+      font-size: 0.75rem;
+      line-height: 1.4;
+    }
+    .nbg-signin__preview-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.4rem 0.6rem;
+      border-bottom: 1px solid var(--nbg-border, #dce3eb);
+      background: var(--nbg-surface-2, #f4f6fa);
+    }
+    .nbg-signin__preview-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--nbg-muted-2, #8392a6);
+      opacity: 0.5;
+    }
+    .nbg-signin__preview-url {
+      margin-left: 0.4rem;
+      font-family: var(--nbg-ff-mono);
+      font-size: 0.7rem;
+      color: var(--nbg-muted, #5b6b80);
+    }
+    .nbg-signin__preview-body {
+      padding: 0.7rem 0.85rem;
+      display: grid;
+      gap: 0.55rem;
+    }
+    .nbg-signin__preview-title {
+      margin: 0 0 0.15rem 0;
+      font-weight: 600;
+      color: var(--nbg-ink, #0b1e2e);
+      font-size: 0.825rem;
+    }
+    .nbg-signin__preview-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      position: relative;
+    }
+    .nbg-signin__preview-field label {
+      font-size: 0.65rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--nbg-muted, #5b6b80);
+      font-weight: 600;
+    }
+    .nbg-signin__preview-input {
+      padding: 0.35rem 0.55rem;
+      border: 1px solid var(--nbg-border, #dce3eb);
+      border-radius: 4px;
+      background: var(--nbg-surface-2, #f4f6fa);
+      color: var(--nbg-muted, #5b6b80);
+      font-family: var(--nbg-ff-mono);
+    }
+    .nbg-signin__preview-input--filled {
+      background: var(--nbg-surface, #ffffff);
+      color: var(--nbg-ink, #0b1e2e);
+      border-color: var(--nbg-accent, #007a8a);
+    }
+    .nbg-signin__preview-checks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      align-items: center;
+    }
+    .nbg-signin__preview-check {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      background: var(--nbg-surface-2, #f4f6fa);
+      color: var(--nbg-muted, #5b6b80);
+      font-family: var(--nbg-ff-mono);
+      font-size: 0.72rem;
+    }
+    .nbg-signin__preview-check--on {
+      background: color-mix(in srgb, var(--nbg-accent, #007a8a) 14%, transparent);
+      color: var(--nbg-accent-ink, var(--nbg-accent, #007a8a));
+      border: 1px solid var(--nbg-accent, #007a8a);
+    }
+    .nbg-signin__preview-check-mark {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      background: var(--nbg-accent, #007a8a);
+    }
+    .nbg-signin__preview-cta {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.25rem;
+    }
+    .nbg-signin__preview-btn {
+      display: inline-block;
+      padding: 0.35rem 0.7rem;
+      background: var(--nbg-accent, #007a8a);
+      color: #ffffff;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.75rem;
+    }
+    .nbg-signin__preview-callout {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--nbg-accent, #007a8a);
+      color: #ffffff;
+      font-size: 0.65rem;
+      font-weight: 700;
+      font-family: var(--nbg-ff-mono);
+      margin-left: 0.4rem;
+      flex-shrink: 0;
+    }
+    .nbg-signin__preview-field .nbg-signin__preview-callout,
+    .nbg-signin__preview-checks .nbg-signin__preview-callout {
+      position: absolute;
+      right: 0;
+      top: 1.2rem;
+    }
+    .nbg-signin__preview-checks .nbg-signin__preview-callout {
+      position: static;
+    }
+    .nbg-signin__preview-caption {
+      padding: 0.55rem 0.85rem;
+      border-top: 1px solid var(--nbg-border, #dce3eb);
+      background: var(--nbg-surface-2, #f4f6fa);
+      color: var(--nbg-muted, #5b6b80);
+      font-size: 0.72rem;
+      line-height: 1.5;
+    }
+    .nbg-signin__preview-caption strong {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--nbg-accent, #007a8a);
+      color: #ffffff;
+      font-size: 0.65rem;
+      font-weight: 700;
+      margin: 0 0.2rem 0 0.35rem;
+      vertical-align: 1px;
+    }
+    .nbg-signin__preview-caption strong:first-child {
+      margin-left: 0;
     }
 
     /* ─── Token input ────────────────────────────────────────────────── */

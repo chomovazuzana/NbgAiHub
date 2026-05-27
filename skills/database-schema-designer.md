@@ -16,6 +16,8 @@ origin: community
 category: code
 status: active
 maintainer: "@nbg-ai-team"
+time_saved: "~2-3 hours on the first run"
+worked_scenario: "Designing a 5-table schema for a customer-segmentation service. Without the skill: an hour of staring at draft DDL, missing a foreign-key direction, and finding it during code review. With the skill: a single `/database-schema-designer` invocation produces the schema plus the migration plan plus the indexing rationale. Review-and-tweak instead of design-from-scratch."
 ---
 
 `database-schema-designer` is for when you're starting a feature that needs persistent data and you want the schema to be *right* — not just "tables that compile". Covers normalization, indexing strategies, migration patterns, constraint design, and naming conventions (the team uses singular table names — `Customer`, not `Customers`).

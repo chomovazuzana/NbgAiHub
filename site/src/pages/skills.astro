@@ -16,11 +16,20 @@
 import { getCollection } from 'astro:content';
 import MarketingShell from '../components/MarketingShell.astro';
 import AudienceFilter from '../components/AudienceFilter.astro';
+import TopicFilter from '../components/TopicFilter.astro';
 import PinButton from '../components/PinButton.astro';
 import { linkGlossaryTerms } from '../lib/glossary-link-string';
 import '../styles/listing-rows.css';
 
 const items = await getCollection('skills');
+
+// UAT T8 V1 — distinct topic values across the skills collection. Skills
+// also expose a `category` enum (workflow/code/docs/integration/…). Use
+// category as the chip dimension here since topics on skills is sparse;
+// it's the field a reader actually wants to scope by.
+const allCategories = Array.from(
+  new Set(items.map((s) => s.data.category)),
+).sort();
 const sorted = items.sort((a, b) => {
   const byDate = b.data.authored.localeCompare(a.data.authored);
   return byDate !== 0 ? byDate : a.data.title.localeCompare(b.data.title);
@@ -83,6 +92,7 @@ const grouped = GROUPS.map((g) => ({
       </div>
       <div class="hero__filter">
         <AudienceFilter scope=".listing-row[data-audience]" />
+        <TopicFilter topics={allCategories} scope=".listing-row[data-topics]" />
       </div>
     </div>
   </section>
@@ -124,6 +134,7 @@ const grouped = GROUPS.map((g) => ({
                     id={`skill-${entry.id}`}
                     class="listing-row"
                     data-audience={entry.data.audience}
+                    data-topics={entry.data.category}
                   >
                     <div class="listing-row__main">
                       <p class="listing-row__eyebrow">
@@ -147,6 +158,15 @@ const grouped = GROUPS.map((g) => ({
                       )}
                     </div>
                     <div class="listing-row__meta">
+                      {entry.data.time_saved && (
+                        <span class="listing-pill listing-pill--time" title="Time you save per use (honest team estimate)">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                          </svg>
+                          <span>{entry.data.time_saved}</span>
+                        </span>
+                      )}
                       <span
                         class={`listing-pill listing-pill--audience listing-pill--audience-${entry.data.audience}`}
                         title={audienceTooltip(entry.data.audience)}
@@ -161,6 +181,12 @@ const grouped = GROUPS.map((g) => ({
                       <span class="listing-row__when-label">Use this when...</span>
                       <span class="listing-row__when-body" set:html={linkGlossaryTerms(entry.data.when_to_use.replace(/^[Uu]se this when ?/, ''))} />
                     </div>
+                    {entry.data.worked_scenario && (
+                      <div class="listing-row__scenario">
+                        <span class="listing-row__scenario-label">In practice</span>
+                        <p class="listing-row__scenario-body" set:html={linkGlossaryTerms(entry.data.worked_scenario)} />
+                      </div>
+                    )}
                   </article>
                 </li>
               );

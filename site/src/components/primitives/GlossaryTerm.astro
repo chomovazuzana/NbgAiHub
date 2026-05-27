@@ -30,7 +30,17 @@
  * Portability: zero Starlight imports — AC36/AC37 gate.
  */
 import { getCollection } from 'astro:content';
-import { linkGlossaryTerms } from '../../lib/glossary-link-string';
+// UAT T6 V1 (2026-05-27) — nested-popover-depth cap. Previously tldr text
+// went through linkGlossaryTerms() so glossary terms *inside* a popover
+// became triggers themselves, creating chains like "hover Claude Code →
+// the popover mentions session → hover session → that popover mentions
+// context window → hover that → …". The cascade felt chaotic in UAT, so
+// we now render the tldr as plain escaped text. The first popover is the
+// last popover. The lazy-nested wire() call below still runs but finds
+// no `[data-glossary-slug]` triggers, so it's a no-op.
+//
+// Reverse-the-cap escape hatch: import linkGlossaryTerms again and pass
+// it to entry.data.tldr — the rest of the wiring still works.
 
 interface Props {
   /**
@@ -58,18 +68,25 @@ if (glossary.length === 0) {
   );
 }
 
-// Each tldr is pre-linked at build time so glossary terms inside tooltips
-// become tooltip triggers themselves — enables "hover inside hover" (the
-// API tooltip pops when you hover "APIs" inside the agent tooltip's tldr).
-// `linkGlossaryTerms` emits the same `<button data-glossary-slug>` HTML the
-// plugin emits, so the wire() routine below can hydrate nested buttons
-// with their own popovers via recursive re-wiring.
+// UAT T6 V1 (2026-05-27) — tldr is now plain HTML-escaped text instead of
+// being pre-linked through `linkGlossaryTerms()`. Inner glossary terms
+// inside the tldr render as ordinary text — no nested popover cascade.
+// The `tldrHtml` field name is preserved so the wiring script downstream
+// doesn't have to change shape.
+function escapeHtmlServer(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 const manifest = Object.fromEntries(
   glossary.map((entry) => [
     entry.id,
     {
       title: entry.data.title,
-      tldrHtml: linkGlossaryTerms(entry.data.tldr),
+      tldrHtml: escapeHtmlServer(entry.data.tldr),
     },
   ]),
 );

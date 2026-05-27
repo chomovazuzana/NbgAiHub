@@ -16,6 +16,8 @@ origin: internal
 category: integration
 status: active
 maintainer: "@nbg-ai-team"
+time_saved: "~45 min per deploy; ~half a day for a first-deploy"
+worked_scenario: "Shipping a new internal API: provision the Azure resources, wire identity-team auth, set environment variables, push the container, verify the health check. Without `/deploy`: an afternoon of clicking through the Azure portal and copy-pasting credentials from email. With `/deploy first-deploy`: ten minutes of approving prompts and one health check at the end."
 ---
 
 `deploy` handles the full deployment lifecycle for NBG Azure-hosted apps. Three modes:

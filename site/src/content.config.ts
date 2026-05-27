@@ -129,6 +129,16 @@ const skills = defineCollection({
     maintainer: z.string().min(1),
     // Free-text per A11; `undefined` when absent (NOT `[]`) to keep diffs minimal.
     requires: z.array(z.string()).optional(),
+    // UAT T7 V1 (2026-05-27) — a short, honest estimate of the wall-clock
+    // time the skill saves vs doing the task by hand. Plain text like
+    // "~30 min per use" or "~2 hours the first run". Optional because
+    // some skills genuinely don't have a clean per-use number.
+    time_saved: z.string().min(1).max(60).optional(),
+    // UAT T7 V2 (2026-05-27) — a 2-4 sentence worked scenario answering
+    // "when would I reach for this?". Concrete story, not abstract
+    // capability. Optional during the rollout so existing skills don't
+    // break the build; ship one with each skill entry as they're authored.
+    worked_scenario: z.string().min(1).max(600).optional(),
   }),
 });
 

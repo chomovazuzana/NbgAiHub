@@ -16,36 +16,37 @@
  *
  * Related: project-design.md §S.13.16 (AgentNews aesthetic anchor).
  */
-import { getCollection } from 'astro:content';
 import MarketingShell from '../components/MarketingShell.astro';
-import { linkGlossaryTerms } from '../lib/glossary-link-string';
+import TerminalDemo from '../components/TerminalDemo.astro';
+import type { TerminalFrame } from '../components/TerminalDemo.astro';
 
-const skills = await getCollection('skills');
-const tips   = await getCollection('tips');
-
-const topSkills = skills.slice(0, 6);
-const topTips   = tips.slice(0, 6);
-
-/**
- * Split skill titles on " — " so cards can render the short explanation
- * as the headline and the slash command on its own line below it.
- * Left side of the em-dash carries the command label (`/claudemd`, `gsd-*`);
- * right side is the short explanation. Fallback to /skill_id if a future
- * entry omits the separator.
- */
-function splitSkillTitle(title: string, skill_id: string) {
-  const parts = title.split(' — ');
-  if (parts.length < 2) {
-    return { explanation: title, command: `/${skill_id}` };
-  }
-  const head = parts[0]!;
-  return {
-    explanation: parts.slice(1).join(' — '),
-    command: head.startsWith('/') ? head : `/${head}`,
-  };
-}
+// 2026-05-27 UAT T2 V1: below-fold Skills/Tips grids removed so the
+// homepage is a literal two-door router. Catalog access flows through
+// the Experienced card's 4-pill row and the global nav. Skill-title
+// split / topSkills / topTips deleted with the grids.
 
 const AGENTNEWS_URL = 'https://biks2013.github.io/AgentNews/';
+
+// UAT T17 V2 (2026-05-27) — visual "what does Claude Code actually look
+// like" peek. CSS-styled terminal demo for now; a real asciinema
+// recording can replace this slot later (see Issues - Pending Items).
+const homeDemoFrames: TerminalFrame[] = [
+  {
+    prompt: 'claude --dangerously-skip-permissions',
+    response: 'Welcome back. Reading CLAUDE.md from /Users/suzy/projects/customer-segments-api …',
+    callout: { n: 1, note: 'You launch Claude inside a project folder. It reads CLAUDE.md first.' },
+  },
+  {
+    prompt: 'summarise what this service does in 4 bullets, plain language',
+    response: '• Scores retail customers by spending pattern\n• Backend: Node 22 + TypeScript on Postgres\n• Lives behind the internal API gateway\n• Run with `npm run dev` on port 3010',
+    callout: { n: 2, note: 'You type prompts in plain language. Claude reads the code and answers.' },
+  },
+  {
+    prompt: 'add a /health endpoint that returns 200 OK',
+    response: 'Proposed change to src/routes/health.ts (+12 lines). Apply this change? [y/N]',
+    callout: { n: 3, note: 'For code edits, Claude pauses for your approval — every time.' },
+  },
+];
 ---
 
 <MarketingShell
@@ -72,6 +73,21 @@ const AGENTNEWS_URL = 'https://biks2013.github.io/AgentNews/';
           alongside you. Think of it as a developer pair sitting next to you,
           inside your project folder. The rest of this site explains how we use
           it at NBG and how to get started.
+        </p>
+        <p class="hero__why">
+          <strong>Why we built this hub.</strong> Claude Code adoption is ramping
+          across NBG over the coming year. The AI unit has a ~6-month head start,
+          and the colleagues joining us next deserve more than the trial-and-error
+          we had. This hub is what we wish we'd had on day 1 — the survival keys,
+          the prompting habits, the gotchas — captured so the next person doesn't
+          have to learn them the hard way.
+        </p>
+        <p class="hero__lang">
+          <span class="hero__lang-flag" aria-hidden="true">🇬🇷</span>
+          <strong>Claude Code understands Greek.</strong> Prompt in whichever
+          language feels natural — the model replies in the language you wrote.
+          See the <a href="/tips/#tip-prompting-in-greek">prompting-in-Greek tip</a>
+          for a worked example.
         </p>
       </div>
 
@@ -134,61 +150,18 @@ const AGENTNEWS_URL = 'https://biks2013.github.io/AgentNews/';
     </div>
   </section>
 
-  {/* ─── Skills feed ──────────────────────────────────────────────── */}
-  <section class="section" id="skills">
+  {/* ─── What a session looks like (UAT T17 V2) ─────────────────── */}
+  <section class="section section--demo">
     <div class="wrap">
       <div class="section__head">
-        <h2>Skills</h2>
-        <a href="/skills/">All skills →</a>
+        <h2>What a session looks like</h2>
+        <span class="count">A 3-frame peek. Real recordings coming later.</span>
       </div>
-      <div class="grid-3">
-        {topSkills.map((skill) => {
-          const { explanation, command } = splitSkillTitle(skill.data.title, skill.data.skill_id);
-          return (
-            <article class="card card--text" data-audience={skill.data.audience}>
-              <div class="card__body">
-                <div class="card__meta">
-                  <span class="eyebrow accent">Skill</span>
-                </div>
-                <h3 class="card__title">
-                  <a href={`/skills/#skill-${skill.id}`}>{explanation}</a>
-                </h3>
-                <p class="card__command"><code>{command}</code></p>
-                {skill.data.ai_summary && (
-                  <p class="card__summary" set:html={linkGlossaryTerms(skill.data.ai_summary)} />
-                )}
-              </div>
-            </article>
-          );
-        })}
-      </div>
-    </div>
-  </section>
-
-  {/* ─── Tips feed ───────────────────────────────────────────────── */}
-  <section class="section" id="tips">
-    <div class="wrap">
-      <div class="section__head">
-        <h2>Tips</h2>
-        <a href="/tips/">All tips →</a>
-      </div>
-      <div class="grid-3">
-        {topTips.map((tip) => (
-          <article class="card card--text" data-audience={tip.data.audience}>
-            <div class="card__body">
-              <div class="card__meta">
-                <span class="eyebrow accent">Tip</span>
-              </div>
-              <h3 class="card__title">
-                <a href={`/tips/#tip-${tip.id}`}>{tip.data.title}</a>
-              </h3>
-              {tip.data.ai_summary && (
-                <p class="card__summary" set:html={linkGlossaryTerms(tip.data.ai_summary)} />
-              )}
-            </div>
-          </article>
-        ))}
-      </div>
+      <TerminalDemo
+        title="claude — bash — 80×24"
+        frames={homeDemoFrames}
+        caption="No live audio, no scrubbing — yet. This is a stylised preview while the team captures real asciinema recordings."
+      />
     </div>
   </section>
 
@@ -223,6 +196,7 @@ const AGENTNEWS_URL = 'https://biks2013.github.io/AgentNews/';
         <div>
           <h4>About</h4>
           <ul>
+            <li><a href="/about/">About this hub</a></li>
             <li>Maintained by the NBG AI team</li>
             <li>Internal use only</li>
           </ul>
@@ -280,6 +254,54 @@ const AGENTNEWS_URL = 'https://biks2013.github.io/AgentNews/';
   .hero__what strong {
     color: var(--nbg-ink);
     font-weight: 600;
+  }
+
+  /* "Why we built this hub" — UAT T3 V1. Sits below the "what" callout
+     in the hero. Sibling to .hero__what but no left-border accent, so
+     it reads as the quieter companion paragraph (motivation) below the
+     bolder definition above (what Claude Code is). */
+  .hero__why {
+    margin: 0.75rem 0 0 0;
+    padding: 1rem 1.25rem;
+    color: var(--nbg-muted);
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    max-width: none;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .hero__why strong {
+    color: var(--nbg-ink);
+    font-weight: 600;
+  }
+
+  /* UAT T16 V1 — Greek-prompt callout. Quieter than the "why" paragraph
+     above, with a small visual marker so the language line is scannable
+     without dominating the hero. */
+  .hero__lang {
+    margin: 0.5rem 0 0 0;
+    padding: 0.6rem 1.25rem;
+    color: var(--nbg-ink);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .hero__lang-flag {
+    flex-shrink: 0;
+    font-size: 1rem;
+    line-height: 1;
+  }
+  .hero__lang strong {
+    color: var(--nbg-ink);
+    font-weight: 600;
+  }
+  .hero__lang a {
+    color: var(--nbg-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
   }
 
   /* Default grid `align-items: stretch` makes both cards equal height

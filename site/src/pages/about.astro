@@ -1,0 +1,170 @@
+---
+/**
+ * /about — "what this hub is" page.
+ *
+ * UAT T9 V1 (2026-05-27). One reviewer noted that following the homepage's
+ * News link drops you on an off-site destination with no surface telling
+ * you what NbgAiHub itself is. There is no "About" page anywhere on the
+ * site — hub identity has to be inferred from the homepage hero copy.
+ *
+ * This page fills that gap with a single-screen explainer: what the hub
+ * is, who built it, why, who it's for, the content rules, and how to get
+ * in touch. Linked from the homepage footer.
+ *
+ * No new primitives — reuses .hero + .section + .wrap from agentnews-layout.css
+ * and the existing MarketingShell width="full" composition contract.
+ */
+import MarketingShell from '../components/MarketingShell.astro';
+import { linkGlossaryTerms } from '../lib/glossary-link-string';
+
+const REPO_URL = 'https://github.com/chomovazuzana/NbgAiHub';
+const ONBOARDING_URL = 'https://556lowcodenocode.github.io/Onboarding/';
+const AGENTNEWS_URL = 'https://biks2013.github.io/AgentNews/';
+---
+
+<MarketingShell
+  title="About"
+  description="What NbgAiHub is, who built it, why, who it's for."
+  surfaceId="about"
+  width="full"
+  hero="none"
+>
+  <section class="hero hero--stack">
+    <div class="wrap">
+      <div class="hero__intro">
+        <h1 class="hero__title">About this <em>hub</em></h1>
+        <p class="hero__lede">
+          A field manual for colleagues onboarding to Claude Code at NBG — the
+          stuff we wish we'd had on day 1.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--listing">
+    <div class="wrap about-grid">
+      <article class="about-block">
+        <p class="about-block__eyebrow">Why this exists</p>
+        <h2 class="about-block__title">We had a six-month head start. This is what we learned.</h2>
+        <p class="about-block__body">
+          Claude Code adoption is ramping across NBG over the next year. The AI
+          unit got there first — by about six months — and made every beginner
+          mistake on the way. We built this hub so the colleagues joining us
+          next don't have to repeat them. Survival keys, prompting habits,
+          context discipline, the gotchas that look obvious in hindsight and
+          opaque on day 1.
+        </p>
+      </article>
+
+      <article class="about-block">
+        <p class="about-block__eyebrow">Who it's for</p>
+        <h2 class="about-block__title">Bank colleagues — technical and not.</h2>
+        <p class="about-block__body" set:html={linkGlossaryTerms("Primarily for colleagues new to Claude Code joining over the next 6–12 months. Roles range from developers and data scientists to business analysts, operations, and managers. If your role isn't listed, you're still welcome — Claude Code is general-purpose by design.")} />
+      </article>
+
+      <article class="about-block">
+        <p class="about-block__eyebrow">Who built it</p>
+        <h2 class="about-block__title">The NBG AI team — in our spare time, on purpose.</h2>
+        <p class="about-block__body">
+          The hub is maintained by the AI unit. Contributions are welcome via
+          pull requests against <a href={REPO_URL} target="_blank" rel="noopener">the repo on GitHub ↗</a>.
+          Every skill, tip, and glossary entry on this site is hand-authored or
+          hand-reviewed by a team member. News items are AI-triaged from RSS
+          feeds but the curation rules are ours.
+        </p>
+      </article>
+
+      <article class="about-block">
+        <p class="about-block__eyebrow">Content rules</p>
+        <h2 class="about-block__title">Plainspoken, opinionated, no marketing voice.</h2>
+        <p class="about-block__body">
+          Tone: <em>"what I wish I knew a year ago."</em> Everything you read here
+          was painful, surprising, or non-obvious to someone on the team. We
+          assume the reader is a smart colleague new to Claude Code — not a
+          stranger, not an expert. Bank-confidential content does not live on
+          this repo (the repo is on a personal account); anything sensitive
+          goes through compliance review first.
+        </p>
+      </article>
+
+      <article class="about-block">
+        <p class="about-block__eyebrow">Where to start</p>
+        <h2 class="about-block__title">Foundations → Day 1 → pick a pillar.</h2>
+        <p class="about-block__body">
+          New to Claude Code? Begin at <a href="/start-here/foundations/">Foundations</a>,
+          then <a href="/start-here/day-1/">Day 1 setup</a>. Already using it?
+          Jump straight to <a href="/skills/">Skills</a>, <a href="/tips/">Tips</a>,
+          or <a href="/glossary/">Glossary</a>. Tech news lives at <a href={AGENTNEWS_URL} target="_blank" rel="noopener">AgentNews ↗</a>
+          (curated by a colleague). General Claude-at-NBG onboarding (provisioning,
+          policy, the bigger picture) lives at <a href={ONBOARDING_URL} target="_blank" rel="noopener">the Onboarding guide ↗</a>.
+        </p>
+      </article>
+
+      <article class="about-block">
+        <p class="about-block__eyebrow">How to reach us</p>
+        <h2 class="about-block__title">PR, issue, team channel.</h2>
+        <p class="about-block__body">
+          Found a typo, a stale link, a confusing tip? Open a pull request or
+          a GitHub issue at <a href={REPO_URL} target="_blank" rel="noopener">the repo ↗</a>.
+          For larger asks (a new skill, a section that's missing, a contribution
+          you'd like to discuss) ping the team channel and we'll route it.
+        </p>
+      </article>
+    </div>
+  </section>
+</MarketingShell>
+
+<style>
+  @layer nbg.components {
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.75rem;
+    }
+
+    .about-block {
+      padding: 1.75rem;
+      border: 1px solid var(--nbg-border);
+      border-radius: var(--nbg-r-lg, 12px);
+      background: var(--nbg-surface);
+    }
+
+    .about-block__eyebrow {
+      margin: 0 0 0.35rem 0;
+      font-family: var(--nbg-type-mono);
+      font-size: var(--nbg-fs-xs);
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--nbg-accent);
+    }
+
+    .about-block__title {
+      margin: 0 0 0.75rem 0;
+      font-size: clamp(1.15rem, 1.7vw, 1.35rem);
+      line-height: 1.3;
+      color: var(--nbg-ink);
+    }
+
+    .about-block__body {
+      margin: 0;
+      color: var(--nbg-ink-2);
+      line-height: 1.6;
+    }
+
+    .about-block__body a {
+      color: var(--nbg-accent);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .about-block__body a:hover {
+      color: var(--nbg-accent-ink);
+    }
+
+    @media (min-width: 60rem) {
+      .about-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  }
+</style>

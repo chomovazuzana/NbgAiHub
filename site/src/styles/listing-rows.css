@@ -10,6 +10,9 @@
 @layer nbg.components {
   /* AudienceFilter hides rows it doesn't want to show. */
   .listing-row.audience-hidden { display: none; }
+  /* UAT T8 V1 — TopicFilter ANDs with the audience filter. Either class
+     hides the row, so a row is visible only when neither filter rejects it. */
+  .listing-row.topic-hidden { display: none; }
 
   /* Hero — filter integrated into the hero, not its own bordered box. */
   .hero--stack .hero__filter {
@@ -268,6 +271,55 @@
   }
   .listing-row__when-body {
     /* inline so it sits next to the label */
+  }
+
+  /* UAT T7 V1 — time_saved chip. Compact accent-tinted pill next to the
+     audience pill on the right side of every skill row. */
+  .listing-pill--time {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.55rem;
+    border-radius: var(--nbg-r-pill, 999px);
+    background: color-mix(in srgb, var(--nbg-accent, #007a8a) 16%, transparent);
+    color: var(--nbg-accent-ink, #00525c);
+    border: 1px solid color-mix(in srgb, var(--nbg-accent, #007a8a) 40%, transparent);
+    font-family: var(--nbg-ff-body);
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+  .listing-pill--time svg {
+    flex-shrink: 0;
+  }
+
+  /* UAT T7 V2 — worked_scenario block. Lives below the "use this when"
+     callout. Same structural pattern but quieter visual treatment so the
+     reader's eye still leads with the headline material above. */
+  .listing-row__scenario {
+    grid-column: 1 / -1;
+    margin: 0.35rem 0 0;
+    padding: 0.5rem 0.85rem;
+    border-left: 3px solid var(--nbg-border, #dce3eb);
+    background: var(--nbg-surface-2, #f4f6fa);
+    border-radius: 0 6px 6px 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--nbg-ink-2, #4a5563);
+  }
+  .listing-row__scenario-label {
+    font-family: var(--nbg-ff-mono, ui-monospace, monospace);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--nbg-muted, #5b6b80);
+    display: block;
+    margin-bottom: 0.2rem;
+  }
+  .listing-row__scenario-body {
+    margin: 0;
   }
 
   /* "What is a skill?" intro panel — sits above the first section, helps

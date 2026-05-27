@@ -1,0 +1,188 @@
+---
+/**
+ * TerminalDemo.astro — Reusable "terminal session" visual block.
+ *
+ * UAT T17 V2 + T19 V2 (2026-05-27). The hub is text-dominant; reviewers
+ * said diagrams and visual examples would help. This primitive ships an
+ * inline, styled "terminal window" that mimics a real Claude Code session
+ * without depending on an asciinema embed or a PNG capture. Authors pass
+ * an array of "frames" — each is a prompt + response pair, plus optional
+ * callout annotations.
+ *
+ * The slot is shaped so a real asciinema embed (player.js + JSON cast)
+ * can be dropped in later — the wrapping `<figure>` and `<figcaption>`
+ * stay; only the inner `<div class="nbg-terminal__body">` swaps.
+ */
+
+export interface TerminalFrame {
+  /** What the user typed. Rendered after a `$ ` prompt. */
+  prompt?: string;
+  /** What Claude (or the shell) replied. Plain text only — no markdown. */
+  response: string;
+  /** Optional numbered callout that highlights this frame. */
+  callout?: { n: number; note: string };
+}
+
+interface Props {
+  title: string;
+  frames: TerminalFrame[];
+  /** Optional caption shown beneath the terminal box. */
+  caption?: string;
+}
+
+const { title, frames, caption } = Astro.props;
+---
+
+<figure class="nbg-terminal" role="img" aria-label={title}>
+  <div class="nbg-terminal__bar">
+    <span class="nbg-terminal__dot"></span>
+    <span class="nbg-terminal__dot"></span>
+    <span class="nbg-terminal__dot"></span>
+    <span class="nbg-terminal__title">{title}</span>
+  </div>
+  <div class="nbg-terminal__body">
+    {frames.map((frame) => (
+      <div class="nbg-terminal__frame">
+        {frame.prompt && (
+          <p class="nbg-terminal__prompt">
+            <span class="nbg-terminal__prompt-glyph">$</span>
+            <span class="nbg-terminal__prompt-text">{frame.prompt}</span>
+            {frame.callout && (
+              <span class="nbg-terminal__callout">{frame.callout.n}</span>
+            )}
+          </p>
+        )}
+        <p class="nbg-terminal__response">{frame.response}</p>
+      </div>
+    ))}
+  </div>
+  {(caption || frames.some((f) => f.callout)) && (
+    <figcaption class="nbg-terminal__caption">
+      {frames.filter((f) => f.callout).map((f) => (
+        <span class="nbg-terminal__caption-note">
+          <strong>{f.callout!.n}</strong> {f.callout!.note}
+        </span>
+      ))}
+      {caption && <span class="nbg-terminal__caption-tail">{caption}</span>}
+    </figcaption>
+  )}
+</figure>
+
+<style>
+  @layer nbg.components {
+    .nbg-terminal {
+      margin: 1.25rem 0;
+      border: 1px solid var(--nbg-border);
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--nbg-ink, #0b1e2e);
+      color: #d6e3ee;
+      font-family: var(--nbg-ff-mono, ui-monospace, monospace);
+      font-size: 0.85rem;
+      line-height: 1.55;
+      box-shadow: 0 8px 24px -16px rgba(11, 30, 46, 0.45);
+    }
+    .nbg-terminal__bar {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.55rem 0.85rem;
+      background: rgba(255, 255, 255, 0.04);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .nbg-terminal__dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.28);
+    }
+    .nbg-terminal__dot:nth-child(1) { background: #ff5f56; opacity: 0.85; }
+    .nbg-terminal__dot:nth-child(2) { background: #ffbd2e; opacity: 0.85; }
+    .nbg-terminal__dot:nth-child(3) { background: #27c93f; opacity: 0.85; }
+    .nbg-terminal__title {
+      margin-left: 0.5rem;
+      font-family: var(--nbg-ff-body);
+      font-size: 0.72rem;
+      letter-spacing: 0.03em;
+      color: rgba(255, 255, 255, 0.55);
+    }
+    .nbg-terminal__body {
+      padding: 0.85rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+    .nbg-terminal__frame {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .nbg-terminal__prompt {
+      margin: 0;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+    .nbg-terminal__prompt-glyph {
+      color: var(--nbg-accent, #4ad6cc);
+      font-weight: 600;
+    }
+    .nbg-terminal__prompt-text {
+      color: #ffffff;
+    }
+    .nbg-terminal__response {
+      margin: 0;
+      color: #b6c5d3;
+      white-space: pre-wrap;
+    }
+    .nbg-terminal__callout {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--nbg-accent, #4ad6cc);
+      color: var(--nbg-ink, #0b1e2e);
+      font-family: var(--nbg-ff-mono);
+      font-size: 0.65rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .nbg-terminal__caption {
+      padding: 0.65rem 1rem;
+      background: rgba(255, 255, 255, 0.04);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.65);
+      font-family: var(--nbg-ff-body);
+      font-size: 0.78rem;
+      line-height: 1.5;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .nbg-terminal__caption-note {
+      display: block;
+    }
+    .nbg-terminal__caption-note strong {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--nbg-accent, #4ad6cc);
+      color: var(--nbg-ink, #0b1e2e);
+      font-family: var(--nbg-ff-mono);
+      font-size: 0.65rem;
+      margin-right: 0.4rem;
+      vertical-align: 1px;
+    }
+    .nbg-terminal__caption-tail {
+      color: rgba(255, 255, 255, 0.5);
+      font-style: italic;
+    }
+  }
+</style>

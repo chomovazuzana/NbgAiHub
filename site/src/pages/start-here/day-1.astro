@@ -9,11 +9,56 @@
  * Related: project-design.md §S.13.16, plan-005 phase 4 #10.
  * Backs AC10, AC15.
  */
-import { getEntry } from 'astro:content';
+import { getEntry, getCollection } from 'astro:content';
 import { createMarkdownProcessor } from '@astrojs/markdown-remark';
 import MarketingShell from '../../components/MarketingShell.astro';
+import TerminalDemo from '../../components/TerminalDemo.astro';
+import type { TerminalFrame } from '../../components/TerminalDemo.astro';
 import remarkGlossaryLink from '../../plugins/remark-glossary-link.ts';
 import { linkGlossaryTerms } from '../../lib/glossary-link-string';
+
+// UAT T19 V2 (2026-05-27) — annotated visuals slotted into Day 1 Steps 3 + 4.
+// CSS-styled terminal blocks for now; real captures (PNGs or asciinema) can
+// replace these slots later. Bound to step numbers so they survive the
+// 2026-05-27 step renumber (Step 3 = first session; Step 4 = survival keys).
+const firstSessionFrames: TerminalFrame[] = [
+  {
+    prompt: 'cd NbgAiHub',
+    response: '/Users/suzy/projects/NbgAiHub',
+    callout: { n: 1, note: 'Move into the project folder. Claude only sees files in here.' },
+  },
+  {
+    prompt: 'claude --dangerously-skip-permissions',
+    response: 'Reading CLAUDE.md … Ready. What would you like to do?',
+    callout: { n: 2, note: 'Claude reads CLAUDE.md and waits for your first prompt.' },
+  },
+  {
+    prompt: "what's in this repo? short answer please",
+    response: 'A curated Claude Code knowledge hub. Astro static site, glossary, tips, skills, and a Day-1 walkthrough.',
+    callout: { n: 3, note: 'Plain-language questions work. No code required to start.' },
+  },
+];
+const survivalKeysFrames: TerminalFrame[] = [
+  {
+    prompt: 'find every Python file and convert to TypeScript',
+    response: 'Found 142 .py files. Beginning conversion…\n  src/a.py → src/a.ts\n  src/b.py → src/b.ts\n  …',
+    callout: { n: 1, note: "Claude misread the task. Press Esc once — it stops immediately." },
+  },
+  {
+    response: '⎯ Aborted. Press Esc Esc to rewind the conversation, or type a new instruction.',
+    callout: { n: 2, note: 'Esc Esc opens a session-history scrubber to walk back several steps.' },
+  },
+  {
+    prompt: '/compact',
+    response: 'Summarising the conversation so far … done. Active context: ~3.1k tokens.',
+    callout: { n: 3, note: '/compact summarises a long session without losing the thread. /clear wipes it.' },
+  },
+];
+
+// UAT T15 V2 — read glossary length at build time so the count never
+// drifts away from Foundations (was "Thirty-four" while Foundations
+// said "Thirty-six").
+const glossaryCount = (await getCollection('glossary')).length;
 
 const entry = await getEntry('journeys', 'day-1');
 if (!entry) {
@@ -160,6 +205,24 @@ const heroSummary = entry.data.ai_summary;
             <h3 class="journey-step__title" set:html={step.title.replace(/`([^`]+)`/g, '<code>$1</code>')} />
           </div>
           <div class="journey-step__body sl-markdown-content" set:html={step.html} />
+          {/* UAT T19 V2 — visual peek slotted at the steps where seeing the
+              UI most reduces anxiety: Step 3 (first session) and Step 4
+              (survival keys). Bound to step.n so a future reorder doesn't
+              silently disconnect them from their content. */}
+          {step.n === 3 && (
+            <TerminalDemo
+              title="Your first session"
+              frames={firstSessionFrames}
+              caption="Stylised preview. A real recording will replace this slot."
+            />
+          )}
+          {step.n === 4 && (
+            <TerminalDemo
+              title="Esc, Esc Esc, /compact, /clear"
+              frames={survivalKeysFrames}
+              caption="Stylised preview. A real recording will replace this slot."
+            />
+          )}
         </div>
       </div>
     </section>
@@ -182,7 +245,7 @@ const heroSummary = entry.data.ai_summary;
           <div class="card__body">
             <div class="card__meta"><span class="eyebrow eyebrow--accent">Glossary</span></div>
             <h3 class="card__title"><a href="/glossary/">Look up terms</a></h3>
-            <p class="card__summary" set:html={linkGlossaryTerms('Thirty-four terms in plain English — what they mean, when they matter. Use it as a reference, not a reading list.')} />
+            <p class="card__summary" set:html={linkGlossaryTerms(`${glossaryCount} terms in plain English — what they mean, when they matter. Use it as a reference, not a reading list.`)} />
           </div>
         </article>
       </div>
