@@ -29,9 +29,9 @@ A curated Claude Code knowledge hub for bank colleagues, framed around *"what I 
 ├── news/
 │   ├── incoming/              ← Action writes triaged items here, PR opens for review
 │   └── published/             ← editor moves approved items here (permanent archive)
-├── glossary/                  ← 28 terms; canonical count in the AUTO block below. Auto-linked across content via the remark-glossary-link plugin (see §S.14). To author a new term, follow docs/reference/authoring-glossary-terms.md.
-├── skills/                    ← 9 entries cataloguing 556LowCodeNoCode/Skills marketplace (extended 17-key schema lives in site/src/content.config.ts)
-├── tips/                      ← 12 entries (prompting, survival keys, context, compliance)
+├── glossary/                  ← terms catalog (count in AUTO block below); auto-linked across content via the remark-glossary-link plugin (see §S.14). Authoring: docs/reference/authoring-glossary-terms.md.
+├── skills/                    ← entries cataloguing 556LowCodeNoCode/Skills marketplace (extended 17-key schema lives in site/src/content.config.ts)
+├── tips/                      ← entries (prompting, survival keys, context, compliance)
 ├── journeys/                  ← day-1.md (full 6-step walkthrough) + foundations.md (newcomer onboarding); week-1.md + by-role TBD
 ├── pipeline/                  ← TypeScript workspace for the RSS Action + skill validator
 │   ├── package.json           ← Node 22, ESM, vitest 4.x, @rowanmanning/feed-parser
@@ -101,10 +101,23 @@ The repo-layout tree above is *informational* — counts cited there may go brie
 
 - **Before any architectural discussion or scope change**, re-read SCOPE.md and check DECISIONS.md for prior calls on the topic.
 - **When we converge on a decision**, append a new dated entry to DECISIONS.md. Never edit prior entries — supersede with a new entry instead.
-- **When scope changes**, update SCOPE.md (the relevant section + bump *Last updated*) in the same edit.
+- **When scope changes**, update SCOPE.md (the relevant section + rewrite *Last updated* — see Doc hygiene below) in the same edit.
 - **When you add/remove content** in `glossary/`, `tips/`, `skills/`, `journeys/`, or `news/published/`: run `node scripts/sync-doc-counts.mjs` before committing. CI will fail the PR if you forget.
 - **Doc-drift guard is enforced by a Stop hook** at `.claude/settings.local.json`. At the end of each Claude turn, it runs `git diff --name-only HEAD`; if any source/config file changed but none of `DECISIONS.md` / `SCOPE.md` / `Issues - Pending Items.md` changed, it emits a UI warning. Silent when there's nothing to flag. Per-developer override (gitignored). Run `/hooks` to inspect, edit, or disable.
 - **Tone for all content authored under this project:** *"what I wish I knew a year ago"* — opinionated, plainspoken, no AI-slop hedging, no marketing voice. Assume the reader is a smart colleague new to Claude Code.
+
+## Doc hygiene — keep state files short
+
+These four files (`SCOPE.md`, `DECISIONS.md`, `Issues - Pending Items.md`, `CLAUDE.md`) load into every Claude session. Bloat hurts performance — Claude Code warns past ~40k chars per file. Treat each entry like a commit message, not a journal.
+
+- **SCOPE.md** — *snapshot of current truth, not history.* Each session: **rewrite** the `**Last updated:**` line; never append "Prior 2026-MM-DD (…)" blocks. Past sessions live in DECISIONS.md. Target the whole file ≤20k chars.
+- **DECISIONS.md** — *append-only, but tight.* Each entry: dated header + 1-line trigger + bulleted decisions (one line each) + 1-line why + 1-line references (commits / docs / Issues). **No** file-by-file diff narratives, **no** verification screenshots transcribed as prose, **no** "Open items" (those go in Issues). If an entry would naturally be longer, link out to `docs/design/` or `docs/reference/`. Target ≤20 lines per entry.
+- **Issues - Pending Items.md** — *terse triage list, not analysis docs.* Each item: 1-line problem + 1-line cause + 1-line forward fix (3-4 lines max). Long-form post-mortems go to `docs/reference/`. Completed items collapse to a one-line archive section at the bottom.
+- **CLAUDE.md** — *wiring + standing rules only.* If any section grows past ~5 lines, extract to a doc and link.
+
+**When you find yourself wanting to write a multi-paragraph entry,** stop. Write the file-by-file detail into `docs/reference/<topic>-2026-MM-DD.md` and link to it from a 5-line DECISIONS entry. The audit trail lives in git + linked docs, not inline.
+
+**Periodic audit:** operator runs `/audit-state-docs` (`.claude/commands/audit-state-docs.md`) to scan all four files for size, AUTO-block drift, dead refs, stale Issues, and oversized DECISIONS entries — reports findings, applies fixes after confirmation. Run weekly, before sharing the repo, or after a heavy session.
 
 ## Naming
 
